@@ -5,6 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 const STORAGE_KEY = "wollaston-gardens-preview-v1";
 const ADMIN_PASSWORD = "venueadmin";
 const VENUE_NAME = "Wollaston Gardens";
+const LOCATIONS = [
+  "Location 1",
+  "Location 2",
+  "Location 3",
+  "Location 4",
+];
 const ADMIN_EMAIL = "info@thewollastongardens.com";
 const ADMIN_PHONE = "617 903 0736";
 const DEPOSIT_METHOD = "Stripe";
