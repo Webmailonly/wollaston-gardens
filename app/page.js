@@ -738,10 +738,9 @@ function getDepositAmountCents(slot) {
                     <label className="check"><input type="checkbox" checked={form.acceptedContract} onChange={(e) => updateForm("acceptedContract", e.target.checked)} /> <span>I reviewed and accept the contract terms.</span></label>
                     <label className="check"><input type="checkbox" checked={form.insuranceAcknowledged} onChange={(e) => updateForm("insuranceAcknowledged", e.target.checked)} /> <span>I understand proof of insurance is required within 48 hours after approval and deposit payment.</span></label>
                   </div>
+<button className="btn btn-danger" type="submit">Submit Booking Request</button>
 
-                  <button className="btn btn-danger" type="submit">Submit Booking Request</button>
-                </form>
-              </SectionCard>
+{message ? <div className="alert alert-warn">{message}</div> : null}
 
               <SectionCard title="Booking Policies" subtitle="Key information vendors need before requesting a reservation.">
                 <div className="stack-sm">
