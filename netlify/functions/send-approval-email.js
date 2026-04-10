@@ -22,12 +22,19 @@ exports.handler = async (event) => {
     } = body;
 
     const resendApiKey = process.env.RESEND_API_KEY;
-    const fromEmail = process.env.FROM_EMAIL || "bookings@mail.thewollastongardens.com";
+    const fromEmail = process.env.FROM_EMAIL;
 
     if (!resendApiKey) {
       return {
         statusCode: 500,
         body: JSON.stringify({ error: "Missing RESEND_API_KEY" }),
+      };
+    }
+
+    if (!fromEmail) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Missing FROM_EMAIL" }),
       };
     }
 
@@ -42,20 +49,16 @@ exports.handler = async (event) => {
       <h2>Your Booking Has Been Approved</h2>
       <p>Hello ${contactName || "Vendor"},</p>
       <p>Your booking for <strong>Wollaston Gardens</strong> has been approved.</p>
-
       <p><strong>Truck:</strong> ${truck || ""}</p>
       <p><strong>Cuisine:</strong> ${cuisine || ""}</p>
       <p><strong>Date:</strong> ${displayDate || ""}</p>
       <p><strong>Shift:</strong> ${displayTime || ""} (${slotLabel || ""})</p>
-
       <p><strong>Deposit:</strong> ${depositText || ""}</p>
-
       ${
         paymentLink
           ? `<p><a href="${paymentLink}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;">Pay Deposit</a></p>`
           : `<p>Please contact admin for your deposit payment link.</p>`
       }
-
       <p>Proof of insurance is required after approval and deposit payment.</p>
       <p>Thank you.</p>
     `;
