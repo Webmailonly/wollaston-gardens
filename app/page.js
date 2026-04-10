@@ -661,164 +661,207 @@ function getDepositAmountCents(slot) {
           </div>
 
           {activeTab === "vendor" ? (
-            <div className="two-col">
-              <SectionCard title="Vendor Booking Request" subtitle="Choose from all available seasonal time slots. Booking is not confirmed until admin approves it.">
-                <form className="stack" onSubmit={submitBooking}>
-                  <div className="grid-two">
-                    <div><label>Food truck name *</label><input value={form.truck} onChange={(e) => updateForm("truck", e.target.value)} placeholder="Example: Sunset Tacos" /></div>
-                    <div><label>Contact name *</label><input value={form.contactName} onChange={(e) => updateForm("contactName", e.target.value)} placeholder="Your full name" /></div>
-                  </div>
-
-                  <div className="grid-two">
-                    <div><label>Email *</label><input type="email" value={form.email} onChange={(e) => updateForm("email", e.target.value)} placeholder="vendor@email.com" /></div>
-                    <div><label>Phone</label><input value={form.phone} onChange={(e) => updateForm("phone", e.target.value)} placeholder="(555) 555-5555" /></div>
-                  </div>
-
-  <div className="grid-two">
-  <div>
-    <label>Cuisine type *</label>
-    <select value={form.cuisine} onChange={(e) => updateForm("cuisine", e.target.value)}>
-      <option value="">Select cuisine</option>
-      {CUISINE_OPTIONS.map((option) => (
-        <option key={option} value={option}>{option}</option>
-      ))}
-    </select>
-  </div>
-<div className="grid-two">
-  <div>
-    <label>Preferred location *</label>
-    <select value={form.location} onChange={(e) => updateForm("location", e.target.value)}>
-      <option value="">Select location</option>
-      {LOCATIONS.map((location) => (
-        <option key={location} value={location}>{location}</option>
-      ))}
-    </select>
-  </div>
-</div>
-
-<div className="grid-two">
-  <div>
-    <label>Preferred slot *</label>
-    <select
-      value={form.slotId}
-      onChange={(e) => updateForm("slotId", e.target.value)}
-      disabled={!form.location}
+  <div className="two-col">
+    <SectionCard
+      title="Vendor Booking Request"
+      subtitle="Choose from all available seasonal time slots. Booking is not confirmed until admin approves it."
     >
-      <option value="">
-        {form.location ? "Choose an available time slot" : "Select a location first"}
-      </option>
-      {locationFilteredOpenSlots
-        .slice()
-        .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))
-        .map((slot) => (
-          <option key={slot.id} value={String(slot.id)}>
-            {slot.displayDate} • {slot.displayTime} • {slot.slotLabel} • {getPricing(slot)}
-          </option>
-        ))}
-    </select>
-  </div>
-</div>
+      <form className="stack" onSubmit={submitBooking}>
+        <div className="grid-two">
+          <div>
+            <label>Food truck name *</label>
+            <input
+              value={form.truck}
+              onChange={(e) => updateForm("truck", e.target.value)}
+              placeholder="Example: Sunset Tacos"
+            />
+          </div>
+          <div>
+            <label>Contact name *</label>
+            <input
+              value={form.contactName}
+              onChange={(e) => updateForm("contactName", e.target.value)}
+              placeholder="Your full name"
+            />
+          </div>
+        </div>
 
-<div className="grid-two">
-  <div>
-    <label>Preferred slot *</label>
-    <select
-      value={form.slotId}
-      onChange={(e) => updateForm("slotId", e.target.value)}
-      disabled={!form.location}
+        <div className="grid-two">
+          <div>
+            <label>Email *</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => updateForm("email", e.target.value)}
+              placeholder="vendor@email.com"
+            />
+          </div>
+          <div>
+            <label>Phone</label>
+            <input
+              value={form.phone}
+              onChange={(e) => updateForm("phone", e.target.value)}
+              placeholder="(555) 555-5555"
+            />
+          </div>
+        </div>
+
+        <div className="grid-two">
+          <div>
+            <label>Cuisine type *</label>
+            <select
+              value={form.cuisine}
+              onChange={(e) => updateForm("cuisine", e.target.value)}
+            >
+              <option value="">Select cuisine</option>
+              {CUISINE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label>Preferred location *</label>
+            <select
+              value={form.location}
+              onChange={(e) => updateForm("location", e.target.value)}
+            >
+              <option value="">Select location</option>
+              {LOCATIONS.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid-two">
+          <div>
+            <label>Preferred slot *</label>
+            <select
+              value={form.slotId}
+              onChange={(e) => updateForm("slotId", e.target.value)}
+              disabled={!form.location}
+            >
+              <option value="">
+                {form.location ? "Choose an available time slot" : "Select a location first"}
+              </option>
+              {locationFilteredOpenSlots
+                .slice()
+                .sort((a, b) =>
+                  `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`)
+                )
+                .map((slot) => (
+                  <option key={slot.id} value={String(slot.id)}>
+                    {slot.displayDate} • {slot.displayTime} • {slot.slotLabel} • {getPricing(slot)}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label>Truck details / power requirements</label>
+          <textarea
+            value={form.requirements}
+            onChange={(e) => updateForm("requirements", e.target.value)}
+            placeholder="Tell us about your setup, electrical needs, and any special notes."
+            rows={5}
+          />
+        </div>
+
+        <div className="info-panel">
+          <div>
+            <strong>Booking rules:</strong> Booking is not confirmed until the admin approves it.
+          </div>
+          <div>
+            <strong>Deposit:</strong> 50% non-refundable deposit due after approval via {DEPOSIT_METHOD}. Refundable only if admin closes the venue due to weather, unforeseen circumstances, admin cancellation, or non-approval.
+          </div>
+          <div>
+            <strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.
+          </div>
+          <div>
+            <strong>Insurance:</strong> Proof of insurance is required after approval and deposit payment, and must be provided within 48 hours or the reservation may be cancelled.
+          </div>
+          <div>
+            <strong>Vendor mix:</strong> Cuisine mix is reviewed manually by admin.
+          </div>
+        </div>
+
+        <div className="note-box">
+          <div className="strong-row">Vendor contract preview</div>
+          <p>
+            Vendor agrees to operate only during approved hours, comply with venue rules,
+            submit required insurance, avoid unauthorized generator use, and report sales
+            accurately for percentage rent.
+          </p>
+
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={form.acceptedContract}
+              onChange={(e) => updateForm("acceptedContract", e.target.checked)}
+            />
+            <span>I reviewed and accept the contract terms.</span>
+          </label>
+
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={form.insuranceAcknowledged}
+              onChange={(e) => updateForm("insuranceAcknowledged", e.target.checked)}
+            />
+            <span>
+              I understand proof of insurance is required within 48 hours after approval
+              and deposit payment.
+            </span>
+          </label>
+        </div>
+
+        <button className="btn btn-danger" type="submit">
+          Submit Booking Request
+        </button>
+
+        {message ? <div className="alert alert-warn">{message}</div> : null}
+      </form>
+    </SectionCard>
+
+    <SectionCard
+      title="Booking Policies"
+      subtitle="Key information vendors need before requesting a reservation."
     >
-      <option value="">
-        {form.location ? "Choose an available time slot" : "Select a location first"}
-      </option>
-      {locationFilteredOpenSlots
-        .slice()
-        .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))
-        .map((slot) => (
-          <option key={slot.id} value={String(slot.id)}>
-            {slot.displayDate} • {slot.displayTime} • {slot.slotLabel} • {getPricing(slot)}
-          </option>
-        ))}
-    </select>
+      <div className="stack-sm">
+        <div className="note-box">
+          <strong>Pricing</strong>
+          <div>
+            Pricing varies by season, shift length, and full-day reservations. October 3 and 4 use a special October Fest rate.
+          </div>
+        </div>
+        <div className="note-box">
+          <strong>Full-day priority</strong>
+          <div>
+            Saturday and Sunday full-day requests have priority over split shifts when approved by admin.
+          </div>
+        </div>
+        <div className="note-box">
+          <strong>Utilities</strong>
+          <div>
+            Power is provided by the venue. Generators should only be used when necessary.
+          </div>
+        </div>
+        <div className="note-box">
+          <strong>Approval + insurance</strong>
+          <div>
+            Admin approval is required before public listing. Insurance proof is required after approval and deposit payment.
+          </div>
+        </div>
+      </div>
+    </SectionCard>
   </div>
-</div>
-
-                 <div>
-  <label>Truck details / power requirements</label>
-  <textarea
-    value={form.requirements}
-    onChange={(e) => updateForm("requirements", e.target.value)}
-    placeholder="Tell us about your setup, electrical needs, and any special notes."
-    rows={5}
-  />
-</div>
-
-<div className="info-panel">
-  <div>
-    <strong>Booking rules:</strong> Booking is not confirmed until the admin approves it.
-  </div>
-  <div>
-    <strong>Deposit:</strong> 50% non-refundable deposit due after approval via {DEPOSIT_METHOD}. Refundable only if admin closes the venue due to weather, unforeseen circumstances, admin cancellation, or non-approval.
-  </div>
-  <div>
-    <strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.
-  </div>
-  <div>
-    <strong>Insurance:</strong> Proof of insurance is required after approval and deposit payment, and must be provided within 48 hours or the reservation may be cancelled.
-  </div>
-  <div>
-    <strong>Cuisine protection:</strong> Vendor mix is reviewed manually by admin.
-  </div>
-</div>
-
-<div className="note-box">
-  <div className="strong-row">Vendor contract preview</div>
-  <p>
-    Vendor agrees to operate only during approved hours, comply with venue rules,
-    submit required insurance, avoid unauthorized generator use, and report sales
-    accurately for percentage rent.
-  </p>
-
-  <label className="check">
-    <input
-      type="checkbox"
-      checked={form.acceptedContract}
-      onChange={(e) => updateForm("acceptedContract", e.target.checked)}
-    />
-    <span>I reviewed and accept the contract terms.</span>
-  </label>
-
-  <label className="check">
-    <input
-      type="checkbox"
-      checked={form.insuranceAcknowledged}
-      onChange={(e) => updateForm("insuranceAcknowledged", e.target.checked)}
-    />
-    <span>
-      I understand proof of insurance is required within 48 hours after approval
-      and deposit payment.
-    </span>
-  </label>
-</div>
-
-<button className="btn btn-danger" type="submit">Submit Booking Request</button>
-
-{message ? <div className="alert alert-warn">{message}</div> : null}
-</form>
-</SectionCard>
-
-<SectionCard title="Booking Policies" subtitle="Key information vendors need before requesting a reservation.">
-                <div className="stack-sm">
-                  <div className="note-box"><strong>Pricing</strong><div>Pricing varies by season, shift length, and full-day reservations. October 3 and 4 use a special October Fest rate.</div></div>
-                  <div className="note-box"><strong>Full-day priority</strong><div>Saturday and Sunday full-day requests have priority over split shifts when approved by admin.</div></div>
-                  <div className="note-box"><strong>Utilities</strong><div>Power is provided by the venue. Generators should only be used when necessary.</div></div>
-                  <div className="note-box"><strong>Approval + insurance</strong><div>Admin approval is required before public listing. Insurance proof is required after approval and deposit payment.</div></div>
-                </div>
-              </SectionCard>
-            </div>
-          ) : (
-            <div>
-              <div className="bar">
-                <div>
+) : (
                   <h2>Available Seasonal Time Slots</h2>
                   <p>Saturdays and Sundays offer split shifts and full-day options. Full-day bookings take priority when approved.</p>
                 </div>
