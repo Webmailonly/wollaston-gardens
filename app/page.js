@@ -740,10 +740,9 @@ function getDepositAmountCents(slot) {
                 <input type="password" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} placeholder="Enter admin password" />
               </div>
 
-              <div className="button-grid">
-                <button className="btn btn-secondary" onClick={clearDemoData}>Reset Demo Data</button>
-                <button className="btn btn-secondary" onClick={() => alert("ICS export is part of the production build path.")}>Export ICS Feed</button>
-              </div>
+             <div className="button-grid single-button">
+  <button className="btn btn-secondary" onClick={() => alert("ICS export is part of the production build path.")}>Export ICS Feed</button>
+</div>
 
               <div className="note-box">Admin receives text and email notifications for all reservation requests. Vendors are added to the public calendar immediately after admin approval. Admin can request deposit payment, mark deposit received, mark insurance received, and cancel any reservation at their discretion.</div>
               <div className="note-box">Admin contact: {ADMIN_EMAIL} • {ADMIN_PHONE}</div>
