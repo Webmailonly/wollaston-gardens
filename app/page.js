@@ -76,29 +76,29 @@ const emptyForm = {
   insuranceAcknowledged: false,
 };
 
-function saveState(state) {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+async function saveState(state) {
+  try {
+    await fetch("/.netlify/functions/bookings-save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(state)
+    });
+  } catch (error) {
+    console.error("Save failed", error);
   }
 }
 
-function loadState() {
-  if (typeof window === "undefined") return null;
+async function loadState() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
+    const response = await fetch("/.netlify/functions/bookings-get");
+    const data = await response.json();
+    return data?.slots ? { slots: data.slots } : null;
+  } catch (error) {
     return null;
   }
 }
-
-function getMonthName(monthIndex) {
-  return [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
-  ][monthIndex];
-}
-
 function getSeasonWindow(date) {
   if (date >= "2026-05-15" && date <= "2026-06-30") return "may-june";
   if (date >= "2026-07-01" && date < "2026-08-15") return "july-aug14";
@@ -222,13 +222,15 @@ export default function Page() {
   const [activeTab, setActiveTab] = useState("vendor");
 
   useEffect(() => {
-    const saved = loadState();
+  (async () => {
+    const saved = await loadState();
     if (saved?.slots) setSlots(saved.slots);
-  }, []);
+  })();
+}, []);
 
   useEffect(() => {
-    saveState({ slots });
-  }, [slots]);
+  saveState({ slots });
+}, [slots]);
 
   useEffect(() => {
     if (selectedSlotId) setForm((prev) => ({ ...prev, slotId: String(selectedSlotId) }));
@@ -329,7 +331,13 @@ export default function Page() {
     setForm(emptyForm);
     setSelectedSlotId("");
   }
-
+function getDepositAmountCents(slot) {
+  const price = getPricing(slot);
+  const match = price.match(/\$(\d+)/);
+  if (!match) return 10000;
+  const fullAmount = Number(match[1]);
+  return Math.round(fullAmount * 100 * 0.5);
+}
   async function approveSlot(slotId) {
   const selected = slots.find((slot) => slot.id === slotId);
   if (!selected) return;
@@ -365,7 +373,28 @@ export default function Page() {
   const approvedSlot = updatedSlots.find((slot) => slot.id === slotId);
 
   try {
-    const response = await fetch("/.netlify/functions/send-approval-email", {
+    const checkoutResponse = await fetch("/.netlify/functions/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        bookingId: approvedSlot.id,
+        vendorEmail: approvedSlot.email,
+        truck: approvedSlot.truck,
+        displayDate: approvedSlot.displayDate,
+        displayTime: approvedSlot.displayTime,
+        amountCents: getDepositAmountCents(approvedSlot),
+      })
+    });
+
+    const checkoutData = await checkoutResponse.json();
+
+    if (!checkoutResponse.ok) {
+      throw new Error(checkoutData.error || "Failed to create Stripe checkout session");
+    }
+
+    const emailResponse = await fetch("/.netlify/functions/send-approval-email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -379,19 +408,19 @@ export default function Page() {
         displayDate: approvedSlot.displayDate,
         displayTime: approvedSlot.displayTime,
         depositText: getDepositText(approvedSlot),
-        paymentLink: "https://buy.stripe.com/test_bJe28r3v16jDdF38MG3oA00"
+        paymentLink: checkoutData.url
       })
     });
 
-    const result = await response.json();
+    const emailData = await emailResponse.json();
 
-    if (!response.ok) {
-      throw new Error(result.error || "Approval email failed");
+    if (!emailResponse.ok) {
+      throw new Error(emailData.error || "Approval email failed");
     }
 
-    setMessage(`Booking approved. Approval email and deposit request were sent to ${approvedSlot.email}.`);
+    setMessage(`Booking approved. Approval email and Stripe deposit request were sent to ${approvedSlot.email}.`);
   } catch (error) {
-    setMessage("Booking approved, but the approval email failed to send.");
+    setMessage(`Booking approved, but follow-up failed: ${error.message}`);
   }
 }
 
@@ -451,13 +480,11 @@ export default function Page() {
   }
 
   function clearDemoData() {
-    setSlots(initialSlots);
-    setForm(emptyForm);
-    setSelectedSlotId("");
-    setMessage("Demo data reset.");
-    if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
-  }
-
+  setSlots(initialSlots);
+  setForm(emptyForm);
+  setSelectedSlotId("");
+  setMessage("Demo data reset.");
+}
   function toggleAdminMode(nextChecked) {
     if (!nextChecked) {
       setAdminMode(false);
