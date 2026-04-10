@@ -290,7 +290,7 @@ function isSlotBlockedByDateConflict(slot, allSlots) {
 }
 
 function slotOptionLabel(slot) {
-  return `${slot.displayDate} • ${slot.displayTime} • ${slot.slotLabel} • ${getPricing(slot)}`;
+  return `${slot.displayDate} • ${slot.location} • ${slot.displayTime} • ${slot.slotLabel} • ${getPricing(slot)}`;
 }
 
 function Metric({ label, value }) {
@@ -412,16 +412,17 @@ export default function Page() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          truck: form.truck,
-          contactName: form.contactName,
-          email: form.email,
-          phone: form.phone,
-          cuisine: form.cuisine,
-          requirements: form.requirements,
-          slotLabel: selectedSlot.slotLabel,
-          displayDate: selectedSlot.displayDate,
-          displayTime: selectedSlot.displayTime
-        })
+  truck: form.truck,
+  contactName: form.contactName,
+  email: form.email,
+  phone: form.phone,
+  cuisine: form.cuisine,
+  requirements: form.requirements,
+  slotLabel: selectedSlot.slotLabel,
+  displayDate: selectedSlot.displayDate,
+  displayTime: selectedSlot.displayTime,
+  location: selectedSlot.location
+})
       });
 
       setMessage(`Booking request submitted. Email notifications sent to ${ADMIN_EMAIL} and ${form.email}.`);
@@ -508,6 +509,7 @@ function getDepositAmountCents(slot) {
         slotLabel: approvedSlot.slotLabel,
         displayDate: approvedSlot.displayDate,
         displayTime: approvedSlot.displayTime,
+        location: approvedSlot.location,
         depositText: getDepositText(approvedSlot),
         paymentLink: checkoutData.url
       })
@@ -741,7 +743,7 @@ function getDepositAmountCents(slot) {
                       <div className="slot-meta">
                         <div>{slot.displayTime}</div>
                         <div>{slot.slotLabel}</div>
-                        <div>{slot.venueArea}</div>
+                        <div>{slot.location}</div>
                         <div>{getPricing(slot)}</div>
                       </div>
                       <div className="slot-note">
@@ -788,7 +790,7 @@ function getDepositAmountCents(slot) {
                   <div>
                     <div className="subtle">{event.displayDate}</div>
                     <div className="calendar-name">{event.truck}</div>
-                    <div className="subtle">{event.cuisine} • {event.slotLabel} • {event.venueArea}</div>
+                    <div className="subtle">{event.cuisine} • {event.slotLabel} • {event.location}</div>
                   </div>
                   <div className="calendar-time">{event.displayTime}</div>
                 </div>
@@ -855,15 +857,16 @@ function getDepositAmountCents(slot) {
                           <div key={slot.id} className="admin-card">
                             <div className="admin-main">
                               <div className="calendar-name">{slot.truck}</div>
-                              <div className="subtle">{slot.displayDate} • {slot.displayTime} • {slot.slotLabel}</div>
+                              <div className="subtle">{slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}</div>
                               <div className="admin-grid">
-                                <div>{slot.email}</div>
-                                <div>{slot.phone || "No phone provided"}</div>
-                                <div>{slot.cuisine || "Cuisine not specified"}</div>
-                                <div>{slot.requirements || "No setup notes"}</div>
-                                <div>{getPricing(slot)}</div>
-                                <div>{getDepositText(slot)}</div>
-                              </div>
+  <div>{slot.email}</div>
+  <div>{slot.phone || "No phone provided"}</div>
+  <div>{slot.cuisine || "Cuisine not specified"}</div>
+  <div>{slot.location}</div>
+  <div>{slot.requirements || "No setup notes"}</div>
+  <div>{getPricing(slot)}</div>
+  <div>{getDepositText(slot)}</div>
+</div>
                               {conflicts.length > 0 ? (
                                 <div className="alert alert-warn"><strong>Conflict notice:</strong> This request conflicts with {conflicts.length} split/full-day request(s). Full-day approvals take priority.</div>
                               ) : null}
@@ -889,17 +892,18 @@ function getDepositAmountCents(slot) {
                         <div key={slot.id} className="admin-card">
                           <div className="admin-main">
                             <div className="calendar-name">{slot.truck}</div>
-                            <div className="subtle">{slot.displayDate} • {slot.displayTime} • {slot.slotLabel}</div>
-                            <div className="admin-grid">
-                              <div>{slot.cuisine || "Cuisine not specified"}</div>
-                              <div>{getPricing(slot)}</div>
-                              <div>{slot.email}</div>
-                              <div>{slot.phone || "No phone provided"}</div>
-                              <div>Deposit requested: {slot.depositRequested ? "Yes" : "No"}</div>
-                              <div>Deposit received: {slot.depositReceived ? "Yes" : "No"}</div>
-                              <div>Insurance received: {slot.insuranceReceived ? "Yes" : "No"}</div>
-                              <div>Cancel reason: {slot.cancelReason || "None"}</div>
-                            </div>
+                            <div className="subtle">{slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}</div>
+                           <div className="admin-grid">
+  <div>{slot.cuisine || "Cuisine not specified"}</div>
+  <div>{slot.location}</div>
+  <div>{getPricing(slot)}</div>
+  <div>{slot.email}</div>
+  <div>{slot.phone || "No phone provided"}</div>
+  <div>Deposit requested: {slot.depositRequested ? "Yes" : "No"}</div>
+  <div>Deposit received: {slot.depositReceived ? "Yes" : "No"}</div>
+  <div>Insurance received: {slot.insuranceReceived ? "Yes" : "No"}</div>
+  <div>Cancel reason: {slot.cancelReason || "None"}</div>
+</div>
                           </div>
                           <div className="admin-actions">
                             <button className="btn btn-secondary" onClick={() => toggleApprovedFlag(slot.id, "depositRequested")}>{slot.depositRequested ? "Deposit Requested" : "Request Deposit"}</button>
