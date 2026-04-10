@@ -265,18 +265,28 @@ function createSlotsFromSchedule() {
 const initialSlots = createSlotsFromSchedule();
 
 function getRelatedSlotIds(slot, allSlots) {
-  if (!slot || !["Saturday", "Sunday"].includes(slot.day)) return slot ? [slot.id] : [];
-  return allSlots.filter((candidate) => candidate.date === slot.date).map((candidate) => candidate.id);
+  if (!slot || !["Saturday", "Sunday"].includes(slot.day)) {
+    return slot ? [slot.id] : [];
+  }
+
+  return allSlots
+    .filter(
+      (candidate) =>
+        candidate.date === slot.date &&
+        candidate.location === slot.location
+    )
+    .map((candidate) => candidate.id);
 }
 
 function isSlotBlockedByDateConflict(slot, allSlots) {
   const relatedIds = getRelatedSlotIds(slot, allSlots);
-  return allSlots.some((candidate) => relatedIds.includes(candidate.id) && candidate.id !== slot.id && ["pending", "approved"].includes(candidate.status));
-}
 
-function isCuisineConflict(selectedSlot, selectedCuisine, allSlots) {
-  const group = getCuisineGroup(selectedCuisine);
-  return allSlots.some((slot) => slot.date === selectedSlot.date && ["pending", "approved"].includes(slot.status) && getCuisineGroup(slot.cuisine) === group);
+  return allSlots.some(
+    (candidate) =>
+      relatedIds.includes(candidate.id) &&
+      candidate.id !== slot.id &&
+      ["pending", "approved"].includes(candidate.status)
+  );
 }
 
 function slotOptionLabel(slot) {
@@ -371,10 +381,6 @@ export default function Page() {
     }
     if (!form.insuranceAcknowledged) {
       setMessage("Please acknowledge the insurance requirement before submitting.");
-      return;
-    }
-    if (isSlotBlockedByDateConflict(selectedSlot, slots)) {
-      setMessage("That slot is no longer available because a conflicting split or full-day request already exists.");
       return;
     }
     if (isCuisineConflict(selectedSlot, form.cuisine, slots)) {
