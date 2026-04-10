@@ -755,17 +755,43 @@ function getDepositAmountCents(slot) {
                     <div><strong>Cuisine protection:</strong> Similar cuisines cannot reserve similar time windows.</div>
                   </div>
 
-                  <div className="note-box">
-                    <div className="strong-row">Vendor contract preview</div>
-                    <p>Vendor agrees to operate only during approved hours, comply with venue rules, submit required insurance, avoid unauthorized generator use, and report sales accurately for percentage rent.</p>
-                    <label className="check"><input type="checkbox" checked={form.acceptedContract} onChange={(e) => updateForm("acceptedContract", e.target.checked)} /> <span>I reviewed and accept the contract terms.</span></label>
-                    <label className="check"><input type="checkbox" checked={form.insuranceAcknowledged} onChange={(e) => updateForm("insuranceAcknowledged", e.target.checked)} /> <span>I understand proof of insurance is required within 48 hours after approval and deposit payment.</span></label>
-                  </div>
+                <div className="note-box">
+  <div className="strong-row">Vendor contract preview</div>
+  <p>
+    Vendor agrees to operate only during approved hours, comply with venue rules,
+    submit required insurance, avoid unauthorized generator use, and report sales
+    accurately for percentage rent.
+  </p>
+
+  <label className="check">
+    <input
+      type="checkbox"
+      checked={form.acceptedContract}
+      onChange={(e) => updateForm("acceptedContract", e.target.checked)}
+    />
+    <span>I reviewed and accept the contract terms.</span>
+  </label>
+
+  <label className="check">
+    <input
+      type="checkbox"
+      checked={form.insuranceAcknowledged}
+      onChange={(e) => updateForm("insuranceAcknowledged", e.target.checked)}
+    />
+    <span>
+      I understand proof of insurance is required within 48 hours after approval
+      and deposit payment.
+    </span>
+  </label>
+</div>
+
 <button className="btn btn-danger" type="submit">Submit Booking Request</button>
 
 {message ? <div className="alert alert-warn">{message}</div> : null}
+</form>
+</SectionCard>
 
-              <SectionCard title="Booking Policies" subtitle="Key information vendors need before requesting a reservation.">
+<SectionCard title="Booking Policies" subtitle="Key information vendors need before requesting a reservation.">
                 <div className="stack-sm">
                   <div className="note-box"><strong>Pricing</strong><div>Pricing varies by season, shift length, and full-day reservations. October 3 and 4 use a special October Fest rate.</div></div>
                   <div className="note-box"><strong>Full-day priority</strong><div>Saturday and Sunday full-day requests have priority over split shifts when approved by admin.</div></div>
