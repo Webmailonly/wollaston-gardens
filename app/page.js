@@ -379,7 +379,7 @@ export default function Page() {
         displayDate: approvedSlot.displayDate,
         displayTime: approvedSlot.displayTime,
         depositText: getDepositText(approvedSlot),
-        paymentLink: "https://buy.stripe.com/test_placeholder"
+        paymentLink: "https://buy.stripe.com/test_bJe28r3v16jDdF38MG3oA00"
       })
     });
 
