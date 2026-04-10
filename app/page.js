@@ -742,20 +742,35 @@ function getDepositAmountCents(slot) {
   </div>
 </div>
 
-                  <div>
-                    <label>Truck details / power requirements</label>
-                    <textarea value={form.requirements} onChange={(e) => updateForm("requirements", e.target.value)} placeholder="Tell us about your setup, electrical needs, and any special notes." rows={5} />
-                  </div>
+                 <div>
+  <label>Truck details / power requirements</label>
+  <textarea
+    value={form.requirements}
+    onChange={(e) => updateForm("requirements", e.target.value)}
+    placeholder="Tell us about your setup, electrical needs, and any special notes."
+    rows={5}
+  />
+</div>
 
-                  <div className="info-panel">
-                    <div><strong>Booking rules:</strong> Booking is not confirmed until the admin approves it.</div>
-                    <div><strong>Deposit:</strong> 50% non-refundable deposit due after approval via {DEPOSIT_METHOD}. Refundable only if admin closes the venue due to weather, unforeseen circumstances, admin cancellation, or non-approval.</div>
-                    <div><strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.</div>
-                    <div><strong>Insurance:</strong> Proof of insurance is required after approval and deposit payment, and must be provided within 48 hours or the reservation may be cancelled.</div>
-                    <div><strong>Cuisine protection:</strong> Similar cuisines cannot reserve similar time windows.</div>
-                  </div>
+<div className="info-panel">
+  <div>
+    <strong>Booking rules:</strong> Booking is not confirmed until the admin approves it.
+  </div>
+  <div>
+    <strong>Deposit:</strong> 50% non-refundable deposit due after approval via {DEPOSIT_METHOD}. Refundable only if admin closes the venue due to weather, unforeseen circumstances, admin cancellation, or non-approval.
+  </div>
+  <div>
+    <strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.
+  </div>
+  <div>
+    <strong>Insurance:</strong> Proof of insurance is required after approval and deposit payment, and must be provided within 48 hours or the reservation may be cancelled.
+  </div>
+  <div>
+    <strong>Cuisine protection:</strong> Vendor mix is reviewed manually by admin.
+  </div>
+</div>
 
-                <div className="note-box">
+<div className="note-box">
   <div className="strong-row">Vendor contract preview</div>
   <p>
     Vendor agrees to operate only during approved hours, comply with venue rules,
