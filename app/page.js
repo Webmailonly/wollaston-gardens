@@ -477,12 +477,36 @@ function SectionCard({ title, subtitle, children }) {
   );
 }
 
+function buildMonthGrid(dateString) {
+  const [year, month] = dateString.split("-").map(Number);
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  const startDay = first.getDay();
+  const daysInMonth = last.getDate();
+
+  const cells = [];
+
+  for (let i = 0; i < startDay; i++) {
+    cells.push(null);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    cells.push(iso);
+  }
+
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+
+  return cells;
+}
+
 const initialSlots = createSlotsFromSchedule();
 
 export default function Page() {
   const [slots, setSlots] = useState(initialSlots);
   const [form, setForm] = useState(emptyForm);
-  const [slotFilter, setSlotFilter] = useState("all");
   const [calendarSearch, setCalendarSearch] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [adminMode, setAdminMode] = useState(false);
@@ -490,6 +514,8 @@ export default function Page() {
   const [adminAuthError, setAdminAuthError] = useState("");
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("vendor");
+  const [availabilityMonth, setAvailabilityMonth] = useState("2026-05");
+  const [selectedDate, setSelectedDate] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -532,18 +558,6 @@ export default function Page() {
     [slots]
   );
 
-  const filteredSlots = useMemo(() => {
-    return slots.filter((slot) => {
-      if (slotFilter === "all") return true;
-      if (slotFilter === "available") {
-        return slot.status === "open" && !isSlotBlockedByDateConflict(slot, slots);
-      }
-      if (slotFilter === "booked") return slot.status === "approved";
-      if (slotFilter === "full-day") return slot.slotKind === "full-day";
-      return String(slot.category).toLowerCase() === slotFilter;
-    });
-  }, [slots, slotFilter]);
-
   const publicCalendar = useMemo(() => {
     return approvedSlots
       .filter((slot) => {
@@ -562,6 +576,43 @@ export default function Page() {
       );
   }, [approvedSlots, calendarSearch]);
 
+  const availabilityMonthDates = useMemo(() => {
+    return buildMonthGrid(availabilityMonth);
+  }, [availabilityMonth]);
+
+  const datesWithAvailability = useMemo(() => {
+    return new Set(openSlots.map((slot) => slot.date));
+  }, [openSlots]);
+
+  const selectedDateSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return openSlots
+      .filter((slot) => slot.date === selectedDate)
+      .sort((a, b) => {
+        const first = `${a.startTime}${a.location}`;
+        const second = `${b.startTime}${b.location}`;
+        return first.localeCompare(second);
+      });
+  }, [openSlots, selectedDate]);
+
+  const selectedDateGroupedBySlot = useMemo(() => {
+    const groups = {};
+    for (const slot of selectedDateSlots) {
+      const key = `${slot.startTime}-${slot.endTime}-${slot.slotLabel}`;
+      if (!groups[key]) {
+        groups[key] = {
+          slotLabel: slot.slotLabel,
+          displayTime: slot.displayTime,
+          slotKind: slot.slotKind,
+          durationHours: slot.durationHours,
+          locations: [],
+        };
+      }
+      groups[key].locations.push(slot);
+    }
+    return Object.values(groups);
+  }, [selectedDateSlots]);
+
   function updateForm(field, value) {
     setForm((prev) => {
       if (field === "location") {
@@ -577,6 +628,17 @@ export default function Page() {
         [field]: value,
       };
     });
+  }
+
+  function selectAvailabilitySlot(slot) {
+    setSelectedSlotId(String(slot.id));
+    setForm((prev) => ({
+      ...prev,
+      location: slot.location,
+      slotId: String(slot.id),
+    }));
+    setActiveTab("vendor");
+    document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
   }
 
   async function submitBooking(e) {
@@ -1173,93 +1235,120 @@ export default function Page() {
               </SectionCard>
             </div>
           ) : (
-            <div>
-              <div className="bar">
-                <div>
-                  <h2>Available Seasonal Time Slots</h2>
-                  <p>
-                    Saturdays and Sundays offer split shifts and full-day options.
-                    Full-day bookings take priority when approved.
-                  </p>
+            <div className="availability-layout">
+              <SectionCard
+                title="Season Availability Calendar"
+                subtitle="Choose a date first. Then select a shift and location."
+              >
+                <div className="calendar-toolbar">
+                  <div>
+                    <label>Month</label>
+                    <select
+                      value={availabilityMonth}
+                      onChange={(e) => setAvailabilityMonth(e.target.value)}
+                    >
+                      <option value="2026-05">May 2026</option>
+                      <option value="2026-06">June 2026</option>
+                      <option value="2026-07">July 2026</option>
+                      <option value="2026-08">August 2026</option>
+                      <option value="2026-09">September 2026</option>
+                      <option value="2026-10">October 2026</option>
+                    </select>
+                  </div>
+
+                  <div className="calendar-legend">
+                    <span className="legend-dot legend-open"></span>
+                    <span>Has availability</span>
+                  </div>
                 </div>
-                <div>
-                  <label>Filter slots</label>
-                  <select
-                    value={slotFilter}
-                    onChange={(e) => setSlotFilter(e.target.value)}
-                  >
-                    <option value="all">All slots</option>
-                    <option value="available">Available</option>
-                    <option value="booked">Approved</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                    <option value="full-day">Full Day</option>
-                  </select>
-                </div>
-              </div>
 
-              <div className="cards-grid">
-                {filteredSlots.map((slot) => {
-                  const blocked =
-                    slot.status === "open" &&
-                    isSlotBlockedByDateConflict(slot, slots);
-
-                  return (
-                    <div key={slot.id} className="slot-card">
-                      <div className="slot-top">
-                        <div>
-                          <div className="slot-date">{slot.displayDate}</div>
-                          <div className="subtle">{slot.day}</div>
-                        </div>
-                        <span
-                          className={`badge ${
-                            blocked ? "badge-muted" : `badge-${slot.status}`
-                          }`}
-                        >
-                          {blocked ? "Blocked" : slot.status}
-                        </span>
-                      </div>
-
-                      <div className="slot-meta">
-                        <div>{slot.displayTime}</div>
-                        <div>{slot.slotLabel}</div>
-                        <div>{slot.location}</div>
-                        <div>{getPricing(slot)}</div>
-                      </div>
-
-                      <div className="slot-note">
-                        {blocked
-                          ? "Unavailable because a conflicting split or full-day request is pending or approved."
-                          : slot.status === "open"
-                          ? "This slot is open for booking requests."
-                          : slot.status === "pending"
-                          ? `Pending request from ${slot.truck}.`
-                          : `Confirmed for ${slot.truck}.`}
-                      </div>
-
-                      <button
-                        className="btn btn-full"
-                        disabled={slot.status !== "open" || blocked}
-                        onClick={() => {
-                          setSelectedSlotId(String(slot.id));
-                          updateForm("location", slot.location);
-                          updateForm("slotId", String(slot.id));
-                          setActiveTab("vendor");
-                          document
-                            .getElementById("booking")
-                            ?.scrollIntoView({ behavior: "smooth" });
-                        }}
-                      >
-                        {!blocked && slot.status === "open"
-                          ? "Request This Slot"
-                          : slot.status === "pending"
-                          ? "Pending Review"
-                          : "Unavailable"}
-                      </button>
+                <div className="month-grid">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                    <div key={day} className="month-head">
+                      {day}
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+
+                  {availabilityMonthDates.map((dateCell, index) => {
+                    if (!dateCell) {
+                      return <div key={`empty-${index}`} className="month-cell empty-cell"></div>;
+                    }
+
+                    const dayNumber = Number(dateCell.split("-")[2]);
+                    const hasAvailability = datesWithAvailability.has(dateCell);
+                    const isSelected = selectedDate === dateCell;
+
+                    return (
+                      <button
+                        key={dateCell}
+                        type="button"
+                        className={`month-cell ${hasAvailability ? "has-availability" : "no-availability"} ${isSelected ? "selected-day" : ""}`}
+                        onClick={() => hasAvailability && setSelectedDate(dateCell)}
+                        disabled={!hasAvailability}
+                      >
+                        <div className="month-day-number">{dayNumber}</div>
+                        {hasAvailability ? (
+                          <div className="month-day-note">Open</div>
+                        ) : (
+                          <div className="month-day-note muted-note">No slots</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                title={
+                  selectedDate
+                    ? `Available Shifts for ${selectedDateSlots[0]?.displayDate || selectedDate}`
+                    : "Choose a Date"
+                }
+                subtitle={
+                  selectedDate
+                    ? "Select a shift first, then choose one of the available locations."
+                    : "Click a date on the calendar to view availability."
+                }
+              >
+                {!selectedDate ? (
+                  <div className="empty">
+                    Select a highlighted date to see available lunch, dinner, and full-day options.
+                  </div>
+                ) : selectedDateGroupedBySlot.length === 0 ? (
+                  <div className="empty">No open shifts remain for this date.</div>
+                ) : (
+                  <div className="stack">
+                    {selectedDateGroupedBySlot.map((group) => (
+                      <div key={`${group.displayTime}-${group.slotLabel}`} className="shift-group-card">
+                        <div className="shift-group-header">
+                          <div>
+                            <div className="calendar-name">{group.slotLabel}</div>
+                            <div className="subtle">
+                              {group.displayTime} • {getPricing(group.locations[0])}
+                            </div>
+                          </div>
+                          <span className="badge badge-open">
+                            {group.locations.length} location{group.locations.length === 1 ? "" : "s"}
+                          </span>
+                        </div>
+
+                        <div className="location-chip-row">
+                          {group.locations.map((slot) => (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              className="location-chip"
+                              onClick={() => selectAvailabilitySlot(slot)}
+                            >
+                              {slot.location}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </SectionCard>
             </div>
           )}
         </div>
