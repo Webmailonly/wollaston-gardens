@@ -76,6 +76,7 @@ const emptyForm = {
   email: "",
   phone: "",
   cuisine: "",
+  location: "",
   requirements: "",
   slotId: "",
   acceptedContract: false,
@@ -342,6 +343,10 @@ export default function Page() {
   }, [selectedSlotId]);
 
   const openSlots = useMemo(() => slots.filter((slot) => slot.status === "open" && !isSlotBlockedByDateConflict(slot, slots)), [slots]);
+  const locationFilteredOpenSlots = useMemo(() => {
+  if (!form.location) return [];
+  return openSlots.filter((slot) => slot.location === form.location);
+}, [openSlots, form.location]);
   const pendingSlots = useMemo(() => slots.filter((slot) => slot.status === "pending"), [slots]);
   const approvedSlots = useMemo(() => slots.filter((slot) => slot.status === "approved"), [slots]);
 
@@ -365,16 +370,29 @@ export default function Page() {
   }, [approvedSlots, calendarSearch]);
 
   function updateForm(field, value) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
+  setForm((prev) => {
+    if (field === "location") {
+      return {
+        ...prev,
+        location: value,
+        slotId: "",
+      };
+    }
+
+    return {
+      ...prev,
+      [field]: value,
+    };
+  });
+}
 
   async function submitBooking(e) {
     e.preventDefault();
     const selectedSlot = slots.find((slot) => String(slot.id) === String(form.slotId));
-    if (!selectedSlot || !form.truck || !form.contactName || !form.email || !form.cuisine) {
-      setMessage("Please complete all required fields and choose an available slot.");
-      return;
-    }
+    if (!selectedSlot || !form.truck || !form.contactName || !form.email || !form.cuisine || !form.location) {
+  setMessage("Please complete all required fields and choose a location and available slot.");
+  return;
+}
     if (!form.acceptedContract) {
       setMessage("Please review and accept the contract terms before submitting.");
       return;
@@ -657,23 +675,49 @@ function getDepositAmountCents(slot) {
                   </div>
 
                   <div className="grid-two">
-                    <div>
-                      <label>Cuisine type *</label>
-                      <select value={form.cuisine} onChange={(e) => updateForm("cuisine", e.target.value)}>
-                        <option value="">Select cuisine</option>
-                        {CUISINE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label>Preferred slot *</label>
-                      <select value={form.slotId} onChange={(e) => updateForm("slotId", e.target.value)}>
-                        <option value="">Choose any available time slot</option>
-                        {openSlots.slice().sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`)).map((slot) => (
-                          <option key={slot.id} value={String(slot.id)}>{slotOptionLabel(slot)}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+  <div>
+    <label>Cuisine type *</label>
+    <select value={form.cuisine} onChange={(e) => updateForm("cuisine", e.target.value)}>
+      <option value="">Select cuisine</option>
+      {CUISINE_OPTIONS.map((option) => (
+        <option key={option} value={option}>{option}</option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label>Preferred location *</label>
+    <select value={form.location} onChange={(e) => updateForm("location", e.target.value)}>
+      <option value="">Select location</option>
+      {LOCATIONS.map((location) => (
+        <option key={location} value={location}>{location}</option>
+      ))}
+    </select>
+  </div>
+</div>
+
+<div className="grid-two">
+  <div>
+    <label>Preferred slot *</label>
+    <select
+      value={form.slotId}
+      onChange={(e) => updateForm("slotId", e.target.value)}
+      disabled={!form.location}
+    >
+      <option value="">
+        {form.location ? "Choose an available time slot" : "Select a location first"}
+      </option>
+      {locationFilteredOpenSlots
+        .slice()
+        .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))
+        .map((slot) => (
+          <option key={slot.id} value={String(slot.id)}>
+            {slot.displayDate} • {slot.displayTime} • {slot.slotLabel} • {getPricing(slot)}
+          </option>
+        ))}
+    </select>
+  </div>
+</div>
 
                   <div>
                     <label>Truck details / power requirements</label>
@@ -756,11 +800,12 @@ function getDepositAmountCents(slot) {
                         className="btn btn-full"
                         disabled={slot.status !== "open" || blocked}
                         onClick={() => {
-                          setSelectedSlotId(String(slot.id));
-                          updateForm("slotId", String(slot.id));
-                          setActiveTab("vendor");
-                          document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
-                        }}
+  setSelectedSlotId(String(slot.id));
+  updateForm("location", slot.location);
+  updateForm("slotId", String(slot.id));
+  setActiveTab("vendor");
+  document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
+}}
                       >
                         {!blocked && slot.status === "open" ? "Request This Slot" : slot.status === "pending" ? "Pending Review" : "Unavailable"}
                       </button>
