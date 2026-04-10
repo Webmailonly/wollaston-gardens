@@ -99,6 +99,22 @@ async function loadState() {
     return null;
   }
 }
+function getMonthName(monthIndex) {
+  return [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ][monthIndex];
+}
 function getSeasonWindow(date) {
   if (date >= "2026-05-15" && date <= "2026-06-30") return "may-june";
   if (date >= "2026-07-01" && date < "2026-08-15") return "july-aug14";
