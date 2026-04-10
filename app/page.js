@@ -261,7 +261,7 @@ export default function Page() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function submitBooking(e) {
+  async function submitBooking(e) {
     e.preventDefault();
     const selectedSlot = slots.find((slot) => String(slot.id) === String(form.slotId));
     if (!selectedSlot || !form.truck || !form.contactName || !form.email || !form.cuisine) {
@@ -284,23 +284,48 @@ export default function Page() {
       setMessage("A similar cuisine is already pending or approved for that date. Please choose another date or cuisine window.");
       return;
     }
-    setSlots((prev) =>
-      prev.map((slot) => {
-        if (String(slot.id) !== String(form.slotId)) return slot;
-        return {
-          ...slot,
-          status: "pending",
+
+    const updatedSlots = slots.map((slot) => {
+      if (String(slot.id) !== String(form.slotId)) return slot;
+      return {
+        ...slot,
+        status: "pending",
+        truck: form.truck,
+        cuisine: form.cuisine,
+        contactName: form.contactName,
+        email: form.email,
+        phone: form.phone,
+        requirements: form.requirements,
+        notificationState: "queued",
+      };
+    });
+
+    setSlots(updatedSlots);
+
+    try {
+      await fetch("/.netlify/functions/send-booking-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
           truck: form.truck,
-          cuisine: form.cuisine,
           contactName: form.contactName,
           email: form.email,
           phone: form.phone,
+          cuisine: form.cuisine,
           requirements: form.requirements,
-          notificationState: "queued",
-        };
-      })
-    );
-    setMessage(`Booking request submitted. Admin notifications queued to ${ADMIN_EMAIL} and ${ADMIN_PHONE}.`);
+          slotLabel: selectedSlot.slotLabel,
+          displayDate: selectedSlot.displayDate,
+          displayTime: selectedSlot.displayTime
+        })
+      });
+
+      setMessage(`Booking request submitted. Email notifications sent to ${ADMIN_EMAIL} and ${form.email}.`);
+    } catch (error) {
+      setMessage("Booking request saved, but email sending failed.");
+    }
+
     setForm(emptyForm);
     setSelectedSlotId("");
   }
