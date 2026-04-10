@@ -147,45 +147,118 @@ function getDepositText(slot) {
 function createSlotsFromSchedule() {
   let id = 1;
   const slots = [];
+
   for (const [date, day] of SCHEDULE_ROWS) {
     const [year, month, dayNumber] = date.split("-").map(Number);
     const displayDate = `${getMonthName(month - 1)} ${dayNumber}, ${year}`;
-    const base = {
-      date,
-      displayDate,
-      day,
-      status: "open",
-      venueArea: VENUE_NAME,
-      truck: null,
-      cuisine: null,
-      contactName: null,
-      email: null,
-      phone: null,
-      requirements: null,
-      depositRequested: false,
-      depositReceived: false,
-      insuranceReceived: false,
-      cancelReason: "",
-      adminNotes: "",
-      notificationState: "not-sent",
-    };
-    const pushSlot = (extra) => slots.push({ ...base, id: id++, ...extra });
-    if (day === "Thursday" || day === "Friday") {
-      pushSlot({ startTime: "16:00", endTime: "21:00", displayTime: "4:00 PM - 9:00 PM", category: "Dinner", slotKind: "standard", slotLabel: "Dinner Shift", durationHours: 5 });
-      continue;
-    }
-    if (day === "Saturday") {
-      pushSlot({ startTime: "12:00", endTime: "15:00", displayTime: "12:00 PM - 3:00 PM", category: "Lunch", slotKind: "partial", slotLabel: "Lunch Shift", durationHours: 3 });
-      pushSlot({ startTime: "16:00", endTime: "21:00", displayTime: "4:00 PM - 9:00 PM", category: "Dinner", slotKind: "partial", slotLabel: "Dinner Shift", durationHours: 5 });
-      pushSlot({ startTime: "12:00", endTime: "21:00", displayTime: "12:00 PM - 9:00 PM", category: "Full Day", slotKind: "full-day", slotLabel: "Full Day", durationHours: 9, priorityTier: "priority" });
-      continue;
-    }
-    if (day === "Sunday") {
-      pushSlot({ startTime: "12:00", endTime: "15:00", displayTime: "12:00 PM - 3:00 PM", category: "Lunch", slotKind: "partial", slotLabel: "Midday Shift", durationHours: 3 });
-      pushSlot({ startTime: "16:00", endTime: "19:00", displayTime: "4:00 PM - 7:00 PM", category: "Dinner", slotKind: "partial", slotLabel: "Evening Shift", durationHours: 3 });
-      pushSlot({ startTime: "12:00", endTime: "19:00", displayTime: "12:00 PM - 7:00 PM", category: "Full Day", slotKind: "full-day", slotLabel: "Full Day", durationHours: 7, priorityTier: "priority" });
+
+    for (const locationName of LOCATIONS) {
+      const base = {
+        date,
+        displayDate,
+        day,
+        location: locationName,
+        status: "open",
+        venueArea: `${VENUE_NAME} - ${locationName}`,
+        truck: null,
+        cuisine: null,
+        contactName: null,
+        email: null,
+        phone: null,
+        requirements: null,
+        depositRequested: false,
+        depositReceived: false,
+        insuranceReceived: false,
+        cancelReason: "",
+        adminNotes: "",
+        notificationState: "not-sent",
+      };
+
+      const pushSlot = (extra) => slots.push({ ...base, id: id++, ...extra });
+
+      if (day === "Thursday" || day === "Friday") {
+        pushSlot({
+          startTime: "16:00",
+          endTime: "21:00",
+          displayTime: "4:00 PM - 9:00 PM",
+          category: "Dinner",
+          slotKind: "standard",
+          slotLabel: "Dinner Shift",
+          durationHours: 5,
+        });
+        continue;
+      }
+
+      if (day === "Saturday") {
+        pushSlot({
+          startTime: "12:00",
+          endTime: "15:00",
+          displayTime: "12:00 PM - 3:00 PM",
+          category: "Lunch",
+          slotKind: "partial",
+          slotLabel: "Lunch Shift",
+          durationHours: 3,
+        });
+
+        pushSlot({
+          startTime: "16:00",
+          endTime: "21:00",
+          displayTime: "4:00 PM - 9:00 PM",
+          category: "Dinner",
+          slotKind: "partial",
+          slotLabel: "Dinner Shift",
+          durationHours: 5,
+        });
+
+        pushSlot({
+          startTime: "12:00",
+          endTime: "21:00",
+          displayTime: "12:00 PM - 9:00 PM",
+          category: "Full Day",
+          slotKind: "full-day",
+          slotLabel: "Full Day",
+          durationHours: 9,
+          priorityTier: "priority",
+        });
+
+        continue;
+      }
+
+      if (day === "Sunday") {
+        pushSlot({
+          startTime: "12:00",
+          endTime: "15:00",
+          displayTime: "12:00 PM - 3:00 PM",
+          category: "Lunch",
+          slotKind: "partial",
+          slotLabel: "Midday Shift",
+          durationHours: 3,
+        });
+
+        pushSlot({
+          startTime: "16:00",
+          endTime: "19:00",
+          displayTime: "4:00 PM - 7:00 PM",
+          category: "Dinner",
+          slotKind: "partial",
+          slotLabel: "Evening Shift",
+          durationHours: 3,
+        });
+
+        pushSlot({
+          startTime: "12:00",
+          endTime: "19:00",
+          displayTime: "12:00 PM - 7:00 PM",
+          category: "Full Day",
+          slotKind: "full-day",
+          slotLabel: "Full Day",
+          durationHours: 7,
+          priorityTier: "priority",
+        });
+      }
     }
   }
+
   return slots;
 }
 
