@@ -330,28 +330,70 @@ export default function Page() {
     setSelectedSlotId("");
   }
 
-  function approveSlot(slotId) {
-    const selected = slots.find((slot) => slot.id === slotId);
-    if (!selected) return;
-    const relatedIds = getRelatedSlotIds(selected, slots);
-    setSlots((prev) =>
-      prev.map((slot) => {
-        if (slot.id === slotId) {
-          return {
-            ...slot,
-            status: "approved",
-            notificationState: "sent",
-            depositRequested: true,
-          };
-        }
-        if (relatedIds.includes(slot.id) && slot.id !== slotId && slot.status === "pending" && selected.slotKind === "full-day") {
-          return { ...slot, status: "declined", adminNotes: "Declined due to approved full-day priority booking." };
-        }
-        return slot;
+  async function approveSlot(slotId) {
+  const selected = slots.find((slot) => slot.id === slotId);
+  if (!selected) return;
+
+  const relatedIds = getRelatedSlotIds(selected, slots);
+
+  const updatedSlots = slots.map((slot) => {
+    if (slot.id === slotId) {
+      return {
+        ...slot,
+        status: "approved",
+        notificationState: "sent",
+        depositRequested: true,
+      };
+    }
+    if (
+      relatedIds.includes(slot.id) &&
+      slot.id !== slotId &&
+      slot.status === "pending" &&
+      selected.slotKind === "full-day"
+    ) {
+      return {
+        ...slot,
+        status: "declined",
+        adminNotes: "Declined due to approved full-day priority booking.",
+      };
+    }
+    return slot;
+  });
+
+  setSlots(updatedSlots);
+
+  const approvedSlot = updatedSlots.find((slot) => slot.id === slotId);
+
+  try {
+    const response = await fetch("/.netlify/functions/send-approval-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        truck: approvedSlot.truck,
+        contactName: approvedSlot.contactName,
+        email: approvedSlot.email,
+        cuisine: approvedSlot.cuisine,
+        slotLabel: approvedSlot.slotLabel,
+        displayDate: approvedSlot.displayDate,
+        displayTime: approvedSlot.displayTime,
+        depositText: getDepositText(approvedSlot),
+        paymentLink: "https://buy.stripe.com/test_placeholder"
       })
-    );
-    setMessage(`Booking approved. It appears on the Seasonal Calendar immediately. Deposit request via ${DEPOSIT_METHOD} and insurance follow-up are now due.`);
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Approval email failed");
+    }
+
+    setMessage(`Booking approved. Approval email and deposit request were sent to ${approvedSlot.email}.`);
+  } catch (error) {
+    setMessage("Booking approved, but the approval email failed to send.");
   }
+}
 
   function declineSlot(slotId) {
     setSlots((prev) =>
