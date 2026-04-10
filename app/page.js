@@ -674,7 +674,7 @@ function getDepositAmountCents(slot) {
                     <div><label>Phone</label><input value={form.phone} onChange={(e) => updateForm("phone", e.target.value)} placeholder="(555) 555-5555" /></div>
                   </div>
 
-                  <div className="grid-two">
+  <div className="grid-two">
   <div>
     <label>Cuisine type *</label>
     <select value={form.cuisine} onChange={(e) => updateForm("cuisine", e.target.value)}>
@@ -684,7 +684,7 @@ function getDepositAmountCents(slot) {
       ))}
     </select>
   </div>
-
+<div className="grid-two">
   <div>
     <label>Preferred location *</label>
     <select value={form.location} onChange={(e) => updateForm("location", e.target.value)}>
@@ -692,6 +692,29 @@ function getDepositAmountCents(slot) {
       {LOCATIONS.map((location) => (
         <option key={location} value={location}>{location}</option>
       ))}
+    </select>
+  </div>
+</div>
+
+<div className="grid-two">
+  <div>
+    <label>Preferred slot *</label>
+    <select
+      value={form.slotId}
+      onChange={(e) => updateForm("slotId", e.target.value)}
+      disabled={!form.location}
+    >
+      <option value="">
+        {form.location ? "Choose an available time slot" : "Select a location first"}
+      </option>
+      {locationFilteredOpenSlots
+        .slice()
+        .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))
+        .map((slot) => (
+          <option key={slot.id} value={String(slot.id)}>
+            {slot.displayDate} • {slot.displayTime} • {slot.slotLabel} • {getPricing(slot)}
+          </option>
+        ))}
     </select>
   </div>
 </div>
