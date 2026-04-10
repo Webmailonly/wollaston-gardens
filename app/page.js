@@ -241,7 +241,6 @@ function createSlotsFromSchedule() {
 
     for (const locationName of LOCATIONS) {
       const base = {
-        id: id++,
         date,
         displayDate,
         day,
@@ -356,8 +355,6 @@ function createSlotsFromSchedule() {
   return slots;
 }
 
-const initialSlots = createSlotsFromSchedule();
-
 function getRelatedSlotIds(slot, allSlots) {
   if (!slot || !["Saturday", "Sunday"].includes(slot.day)) {
     return slot ? [slot.id] : [];
@@ -387,6 +384,78 @@ function slotOptionLabel(slot) {
   return `${slot.displayDate} • ${slot.location} • ${slot.displayTime} • ${slot.slotLabel} • ${getPricing(slot)}`;
 }
 
+function escapeICS(value = "") {
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+
+function formatICSDateTime(dateStr, timeStr) {
+  const [year, month, day] = dateStr.split("-");
+  const [hour, minute] = timeStr.split(":");
+  return `${year}${month}${day}T${hour}${minute}00`;
+}
+
+function buildICSFromApprovedSlots(events) {
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Wollaston Gardens//Seasonal Calendar//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+  ];
+
+  for (const event of events) {
+    const uid = `booking-${event.id}@wollastongardens.com`;
+    const dtstamp = new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}Z$/, "Z");
+
+    const dtstart = formatICSDateTime(event.date, event.startTime);
+    const dtend = formatICSDateTime(event.date, event.endTime);
+
+    const summary = `${event.truck || "Food Truck"} - ${event.slotLabel || "Shift"}`;
+    const description = [
+      `Vendor: ${event.truck || ""}`,
+      `Cuisine: ${event.cuisine || ""}`,
+      `Location: ${event.location || ""}`,
+      `Shift: ${event.displayTime || ""}`,
+      `Venue: Wollaston Gardens`,
+    ].join("\\n");
+
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:${escapeICS(uid)}`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART:${dtstart}`,
+      `DTEND:${dtend}`,
+      `SUMMARY:${escapeICS(summary)}`,
+      `DESCRIPTION:${escapeICS(description)}`,
+      `LOCATION:${escapeICS(`${event.location || ""} - Wollaston Gardens`)}`,
+      "END:VEVENT"
+    );
+  }
+
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
+function downloadICS(events) {
+  const ics = buildICSFromApprovedSlots(events);
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "wollaston-gardens-seasonal-calendar.ics";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
 function Metric({ label, value }) {
   return (
     <div className="metric">
@@ -407,6 +476,8 @@ function SectionCard({ title, subtitle, children }) {
     </div>
   );
 }
+
+const initialSlots = createSlotsFromSchedule();
 
 export default function Page() {
   const [slots, setSlots] = useState(initialSlots);
@@ -1303,14 +1374,12 @@ export default function Page() {
               </div>
 
               <div className="button-grid single-button">
-               <button
-  className="btn btn-secondary"
-  onClick={() => {
-    window.open("/.netlify/functions/export-ics", "_blank");
-  }}
->
-  Export ICS Feed
-</button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => downloadICS(approvedSlots)}
+                >
+                  Export ICS Feed
+                </button>
               </div>
 
               <div className="note-box">
