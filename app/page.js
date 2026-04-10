@@ -1303,14 +1303,14 @@ export default function Page() {
               </div>
 
               <div className="button-grid single-button">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() =>
-                    alert("ICS export is part of the production build path.")
-                  }
-                >
-                  Export ICS Feed
-                </button>
+               <button
+  className="btn btn-secondary"
+  onClick={() => {
+    window.open("/.netlify/functions/export-ics", "_blank");
+  }}
+>
+  Export ICS Feed
+</button>
               </div>
 
               <div className="note-box">
