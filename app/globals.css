@@ -119,6 +119,9 @@ textarea{resize:vertical}
   font-size:15px;
   font-weight:700;
   cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
 }
 .btn-primary{background:var(--blue); color:#fff}
 .btn-primary:hover{background:var(--blue-dark)}
