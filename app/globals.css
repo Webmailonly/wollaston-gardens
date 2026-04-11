@@ -27,8 +27,8 @@ a{text-decoration:none}
 .hero-grid{
   display:grid;
   grid-template-columns:1.15fr .85fr;
-  gap:40px;
-  padding:64px 24px 72px;
+  gap:32px;
+  padding:48px 24px 48px;
 }
 .eyebrow{
   display:inline-block;
@@ -41,9 +41,9 @@ a{text-decoration:none}
   margin-bottom:18px;
 }
 h1{
-  font-size:64px;
+  font-size:58px;
   line-height:1.05;
-  margin:0 0 18px;
+  margin:0 0 12px;
   letter-spacing:-.03em;
 }
 h2{font-size:36px; margin:0 0 10px}
@@ -52,11 +52,12 @@ h4{font-size:22px; margin:0 0 16px}
 p{margin:0}
 .lead{
   color:var(--muted);
-  font-size:18px;
-  line-height:1.7;
-  max-width:760px;
+  font-size:17px;
+  line-height:1.6;
+  max-width:640px;
+  margin-bottom:10px;
 }
-.cta-row{display:flex;gap:12px; margin-top:28px; flex-wrap:wrap}
+.cta-row{display:flex;gap:12px; margin-top:18px; flex-wrap:wrap}
 .metrics{
   display:grid;
   grid-template-columns:repeat(3,1fr);
