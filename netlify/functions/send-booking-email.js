@@ -1,13 +1,10 @@
 exports.handler = async (event) => {
   try {
     if (event.httpMethod !== "POST") {
-      return {
-        statusCode: 405,
-        body: JSON.stringify({ error: "Method not allowed" }),
-      };
+      return { statusCode: 405, body: "Method Not Allowed" };
     }
 
-    const body = JSON.parse(event.body || "{}");
+    const data = JSON.parse(event.body);
 
     const {
       truck,
@@ -15,82 +12,64 @@ exports.handler = async (event) => {
       email,
       phone,
       cuisine,
-      slotLabel,
       displayDate,
       displayTime,
-      requirements,
-    } = body;
+      location,
+    } = data;
 
     const resendApiKey = process.env.RESEND_API_KEY;
-    const adminEmail = process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
-    const fromEmail = process.env.FROM_EMAIL || "onboarding@resend.dev";
+    const fromEmail = process.env.FROM_EMAIL;
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPhone = process.env.ADMIN_PHONE;
 
-    if (!resendApiKey) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Missing RESEND_API_KEY" }),
-      };
-    }
-
-    const adminHtml = `
-      <h2>New Food Truck Booking Request</h2>
-      <p><strong>Truck:</strong> ${truck || ""}</p>
-      <p><strong>Contact:</strong> ${contactName || ""}</p>
-      <p><strong>Email:</strong> ${email || ""}</p>
-      <p><strong>Phone:</strong> ${phone || ""}</p>
-      <p><strong>Cuisine:</strong> ${cuisine || ""}</p>
-      <p><strong>Date:</strong> ${displayDate || ""}</p>
-      <p><strong>Shift:</strong> ${displayTime || ""} (${slotLabel || ""})</p>
-      <p><strong>Requirements:</strong> ${requirements || "None provided"}</p>
-      <p>Admin approval is required before this booking is confirmed.</p>
-    `;
-
-    const vendorHtml = `
-      <h2>Your Booking Request Was Received</h2>
-      <p>Thank you for submitting a booking request for <strong>Wollaston Gardens</strong>.</p>
-      <p><strong>Truck:</strong> ${truck || ""}</p>
-      <p><strong>Date:</strong> ${displayDate || ""}</p>
-      <p><strong>Shift:</strong> ${displayTime || ""} (${slotLabel || ""})</p>
-      <p><strong>Cuisine:</strong> ${cuisine || ""}</p>
-      <p>Your request is pending admin review. We will contact you once it has been approved or declined.</p>
-    `;
-
-    const sendEmail = async ({ to, subject, html }) => {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to,
-          subject,
-          html,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to send email");
-      }
-
-      return data;
-    };
-
-    await sendEmail({
-      to: adminEmail,
-      subject: `New booking request: ${truck || "Food Truck"} - ${displayDate || ""}`,
-      html: adminHtml,
+    // --- SEND EMAIL ---
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: adminEmail,
+        subject: `New Booking Request - ${truck}`,
+        html: `
+          <h2>New Booking Request</h2>
+          <p><strong>Truck:</strong> ${truck}</p>
+          <p><strong>Contact:</strong> ${contactName}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Phone:</strong> ${phone}</p>
+          <p><strong>Cuisine:</strong> ${cuisine}</p>
+          <p><strong>Date:</strong> ${displayDate}</p>
+          <p><strong>Time:</strong> ${displayTime}</p>
+          <p><strong>Location:</strong> ${location}</p>
+        `,
+      }),
     });
 
-    if (email) {
-      await sendEmail({
-        to: email,
-        subject: `We received your booking request - Wollaston Gardens`,
-        html: vendorHtml,
-      });
+    // --- SEND SMS ---
+    if (adminPhone) {
+      const sid = process.env.TWILIO_ACCOUNT_SID;
+      const token = process.env.TWILIO_AUTH_TOKEN;
+      const from = process.env.TWILIO_FROM_NUMBER;
+
+      const auth = Buffer.from(`${sid}:${token}`).toString("base64");
+
+      await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            From: from,
+            To: adminPhone,
+            Body: `New Booking: ${truck} | ${displayDate} | ${displayTime} | ${location}`,
+          }),
+        }
+      );
     }
 
     return {
@@ -100,9 +79,7 @@ exports.handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: error.message || "Unknown server error",
-      }),
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
