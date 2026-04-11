@@ -10,6 +10,7 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || "{}");
 
     const {
+      bookingId,
       truck,
       contactName,
       email,
@@ -17,12 +18,14 @@ exports.handler = async (event) => {
       slotLabel,
       displayDate,
       displayTime,
+      location,
       depositText,
       paymentLink,
     } = body;
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL;
+    const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || "";
 
     if (!resendApiKey) {
       return {
@@ -45,6 +48,12 @@ exports.handler = async (event) => {
       };
     }
 
+    const insuranceUploadLink = bookingId
+      ? `${siteUrl}/?insurance=1&bookingId=${encodeURIComponent(
+          bookingId
+        )}#insurance-upload`
+      : `${siteUrl}/#insurance-upload`;
+
     const vendorHtml = `
       <h2>Your Booking Has Been Approved</h2>
       <p>Hello ${contactName || "Vendor"},</p>
@@ -52,6 +61,7 @@ exports.handler = async (event) => {
       <p><strong>Truck:</strong> ${truck || ""}</p>
       <p><strong>Cuisine:</strong> ${cuisine || ""}</p>
       <p><strong>Date:</strong> ${displayDate || ""}</p>
+      <p><strong>Location:</strong> ${location || ""}</p>
       <p><strong>Shift:</strong> ${displayTime || ""} (${slotLabel || ""})</p>
       <p><strong>Deposit:</strong> ${depositText || ""}</p>
       ${
@@ -59,7 +69,9 @@ exports.handler = async (event) => {
           ? `<p><a href="${paymentLink}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;">Pay Deposit</a></p>`
           : `<p>Please contact admin for your deposit payment link.</p>`
       }
-      <p>Proof of insurance is required after approval and deposit payment.</p>
+      <p><strong>Insurance upload:</strong> After deposit payment, please upload your proof of insurance using the button below.</p>
+      <p><a href="${insuranceUploadLink}" style="display:inline-block;padding:12px 18px;background:#ffffff;color:#0f172a;text-decoration:none;border:1px solid #cbd5e1;border-radius:8px;">Upload Insurance</a></p>
+      <p>Your booking ID is: <strong>${bookingId || ""}</strong></p>
       <p>Thank you.</p>
     `;
 
