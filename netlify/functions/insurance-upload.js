@@ -1,5 +1,3 @@
-const { getStore } = require("@netlify/blobs");
-
 exports.handler = async (event) => {
   try {
     if (event.httpMethod !== "POST") {
@@ -10,7 +8,13 @@ exports.handler = async (event) => {
     }
 
     const body = JSON.parse(event.body || "{}");
-    const { bookingId, email, fileName, fileType, fileDataBase64 } = body;
+    const {
+      bookingId,
+      email,
+      fileName,
+      fileType,
+      fileDataBase64,
+    } = body;
 
     if (!bookingId || !email || !fileName || !fileDataBase64) {
       return {
@@ -19,48 +23,57 @@ exports.handler = async (event) => {
       };
     }
 
-    const store = getStore("wollaston-bookings");
-    const slots = (await store.get("slots", { type: "json" })) || [];
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const fromEmail = process.env.FROM_EMAIL;
+    const adminEmail = process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
 
-    const target = slots.find(
-      (slot) =>
-        String(slot.id) === String(bookingId) &&
-        String(slot.email || "").toLowerCase() === String(email).toLowerCase() &&
-        slot.status === "approved"
-    );
-
-    if (!target) {
+    if (!resendApiKey) {
       return {
-        statusCode: 404,
-        body: JSON.stringify({
-          error: "Approved booking not found for that booking ID and email",
-        }),
+        statusCode: 500,
+        body: JSON.stringify({ error: "Missing RESEND_API_KEY" }),
       };
     }
 
-    const uploadedAt = new Date().toISOString();
+    if (!fromEmail) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Missing FROM_EMAIL" }),
+      };
+    }
 
-    await store.setJSON(`insurance-${bookingId}`, {
-      bookingId,
-      email,
-      fileName,
-      fileType: fileType || "application/octet-stream",
-      data: fileDataBase64,
-      uploadedAt,
+    const html = `
+      <h2>Insurance Upload Received</h2>
+      <p><strong>Booking ID:</strong> ${bookingId}</p>
+      <p><strong>Vendor Email:</strong> ${email}</p>
+      <p><strong>File Name:</strong> ${fileName}</p>
+      <p>The insurance document is attached to this email for admin review.</p>
+    `;
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: adminEmail,
+        subject: `Insurance Upload - Booking ${bookingId} - Wollaston Gardens`,
+        html,
+        attachments: [
+          {
+            filename: fileName,
+            content: fileDataBase64,
+          },
+        ],
+      }),
     });
 
-    const updatedSlots = slots.map((slot) =>
-      String(slot.id) === String(bookingId)
-        ? {
-            ...slot,
-            insuranceUploaded: true,
-            insuranceFileName: fileName,
-            insuranceUploadedAt: uploadedAt,
-          }
-        : slot
-    );
+    const data = await response.json();
 
-    await store.setJSON("slots", updatedSlots);
+    if (!response.ok) {
+      throw new Error(data?.message || "Failed to send insurance email");
+    }
 
     return {
       statusCode: 200,
