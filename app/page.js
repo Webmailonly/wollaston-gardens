@@ -963,12 +963,6 @@ export default function Page() {
                 View Seasonal Calendar
               </a>
             </div>
-
-            <div className="metrics">
-              <Metric label="Approved bookings" value={approvedSlots.length} />
-              <Metric label="Pending requests" value={pendingSlots.length} />
-              <Metric label="Open time slots" value={openSlots.length} />
-            </div>
           </div>
 
           <SectionCard
@@ -1493,13 +1487,6 @@ export default function Page() {
                 subtitle="Secure admin access and calendar export."
               >
                 <div className="stack">
-                  <div className="note-box">
-                    <div className="strong-row">Admin access active</div>
-                    <div className="subtle">
-                      You are logged in as admin.
-                    </div>
-                  </div>
-
                   <div className="button-grid">
                     <button
                       className="btn btn-secondary"
@@ -1514,6 +1501,12 @@ export default function Page() {
                     >
                       Logout
                     </button>
+                  </div>
+
+                  <div className="metrics">
+                    <Metric label="Approved requests" value={approvedSlots.length} />
+                    <Metric label="Pending requests" value={pendingSlots.length} />
+                    <Metric label="Available time slots" value={openSlots.length} />
                   </div>
 
                   <div className="note-box">
