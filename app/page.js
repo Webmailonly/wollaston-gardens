@@ -255,9 +255,6 @@ function createSlotsFromSchedule() {
         depositRequested: false,
         depositReceived: false,
         insuranceReceived: false,
-        insuranceUploaded: false,
-        insuranceFileName: "",
-        insuranceUploadedAt: "",
         cancelReason: "",
         adminNotes: "",
         notificationState: "not-sent",
@@ -890,9 +887,6 @@ export default function Page() {
           depositRequested: false,
           depositReceived: false,
           insuranceReceived: false,
-          insuranceUploaded: false,
-          insuranceFileName: "",
-          insuranceUploadedAt: "",
           cancelReason: "",
           adminNotes: "",
           notificationState: "not-sent",
@@ -924,9 +918,6 @@ export default function Page() {
           depositRequested: false,
           depositReceived: false,
           insuranceReceived: false,
-          insuranceUploaded: false,
-          insuranceFileName: "",
-          insuranceUploadedAt: "",
           cancelReason: reason,
           adminNotes: reason,
           notificationState: "not-sent",
@@ -979,12 +970,7 @@ export default function Page() {
         throw new Error(data.error || "Insurance upload failed");
       }
 
-      const refreshed = await loadState();
-      if (refreshed?.slots) {
-        setSlots(refreshed.slots);
-      }
-
-      setInsuranceMessage("Insurance uploaded successfully. Admin can now review it.");
+      setInsuranceMessage("Insurance uploaded successfully and emailed to admin.");
       setInsuranceFile(null);
     } catch (error) {
       setInsuranceMessage(error.message || "Insurance upload failed");
@@ -1752,15 +1738,8 @@ export default function Page() {
                                   {slot.depositReceived ? "Yes" : "No"}
                                 </div>
                                 <div>
-                                  Insurance uploaded:{" "}
-                                  {slot.insuranceUploaded ? "Yes" : "No"}
-                                </div>
-                                <div>
                                   Insurance received:{" "}
                                   {slot.insuranceReceived ? "Yes" : "No"}
-                                </div>
-                                <div>
-                                  File: {slot.insuranceFileName || "None"}
                                 </div>
                                 <div>
                                   Cancel reason: {slot.cancelReason || "None"}
@@ -1801,20 +1780,6 @@ export default function Page() {
                                   ? "Insurance Received"
                                   : "Mark Insurance Received"}
                               </button>
-
-                              {slot.insuranceUploaded ? (
-                                <button
-                                  className="btn btn-secondary"
-                                  onClick={() =>
-                                    window.open(
-                                      `/.netlify/functions/insurance-download?bookingId=${slot.id}`,
-                                      "_blank"
-                                    )
-                                  }
-                                >
-                                  Download Insurance
-                                </button>
-                              ) : null}
 
                               <button
                                 className="btn btn-danger"
