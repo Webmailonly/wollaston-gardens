@@ -994,10 +994,6 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="note-box">
-                <strong>Special rate dates</strong>
-                <div>October 3 and 4 (October Fest): $250 + 10% of sales.</div>
-              </div>
             </div>
           </SectionCard>
         </div>
@@ -1224,7 +1220,7 @@ export default function Page() {
                     <strong>Pricing</strong>
                     <div>
                       Pricing varies by season, shift length, and full-day
-                      reservations. October 3 and 4 use a special October Fest rate.
+                      reservations. 
                     </div>
                   </div>
                   <div className="note-box">
@@ -1436,10 +1432,6 @@ export default function Page() {
                   Admin can request deposit, mark deposit received, mark insurance
                   received, and cancel reservations at any time.
                 </div>
-              </div>
-              <div className="note-box">
-                <strong>Special rate dates</strong>
-                <div>October 3 and 4 (October Fest): $250 + 10% of sales.</div>
               </div>
             </div>
           </SectionCard>
