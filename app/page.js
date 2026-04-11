@@ -947,7 +947,6 @@ export default function Page() {
       <section className="hero">
         <div className="wrap hero-grid">
           <div>
-            <div className="eyebrow">Vendor Booking + Seasonal Calendar</div>
             <h1>Book your food truck for the season.</h1>
             <p className="lead">
               Vendors can request available dates and shifts throughout the season.
@@ -959,9 +958,7 @@ export default function Page() {
               <a href="#booking" className="btn btn-primary">
                 Request a Booking
               </a>
-              <a href="#calendar" className="btn btn-secondary">
-                View Seasonal Calendar
-              </a>
+              
             </div>
           </div>
 
