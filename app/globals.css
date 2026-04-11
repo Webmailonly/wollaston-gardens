@@ -420,3 +420,13 @@ textarea{resize:vertical}
   .month-cell{min-height:80px}
   h1{font-size:40px}
 }
+.hero-logo{
+  display:flex;
+  justify-content:center;
+  margin-bottom:24px;
+}
+
+.hero-logo img{
+  max-width:320px;
+  height:auto;
+}
