@@ -481,33 +481,16 @@ function buildMonthGrid(dateString) {
 
   const cells = [];
 
-  for (let i = 0; i < startDay; i++) {
-    cells.push(null);
-  }
+  for (let i = 0; i < startDay; i++) cells.push(null);
 
   for (let day = 1; day <= daysInMonth; day++) {
     const iso = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     cells.push(iso);
   }
 
-  while (cells.length % 7 !== 0) {
-    cells.push(null);
-  }
+  while (cells.length % 7 !== 0) cells.push(null);
 
   return cells;
-}
-
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result || "");
-      const base64 = result.includes(",") ? result.split(",")[1] : result;
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }
 
 const initialSlots = createSlotsFromSchedule();
@@ -526,11 +509,6 @@ export default function Page() {
   const [availabilityMonth, setAvailabilityMonth] = useState("2026-05");
   const [selectedDate, setSelectedDate] = useState("");
 
-  const [insuranceBookingId, setInsuranceBookingId] = useState("");
-  const [insuranceEmail, setInsuranceEmail] = useState("");
-  const [insuranceFile, setInsuranceFile] = useState(null);
-  const [insuranceMessage, setInsuranceMessage] = useState("");
-
   useEffect(() => {
     (async () => {
       const saved = await loadState();
@@ -540,23 +518,7 @@ export default function Page() {
 
   useEffect(() => {
     const stored = window.localStorage.getItem("wg_admin_auth");
-    if (stored === "true") {
-      setIsAdmin(true);
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const insurance = params.get("insurance");
-    const bookingId = params.get("bookingId");
-
-    if (insurance === "1" && bookingId) {
-      setInsuranceBookingId(bookingId);
-      setTimeout(() => {
-        document.getElementById("insurance-upload")?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 300);
-    }
+    if (stored === "true") setIsAdmin(true);
   }, []);
 
   useEffect(() => {
@@ -593,8 +555,8 @@ export default function Page() {
     [slots]
   );
 
-  const publicCalendar = useMemo(() => {
-    return approvedSlots
+  const groupedPublicCalendar = useMemo(() => {
+    const filtered = approvedSlots
       .filter((slot) => {
         const q = calendarSearch.toLowerCase();
         return (
@@ -607,8 +569,27 @@ export default function Page() {
         );
       })
       .sort((a, b) =>
-        `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`)
+        `${a.date}${a.startTime}${a.location}`.localeCompare(
+          `${b.date}${b.startTime}${b.location}`
+        )
       );
+
+    const groups = [];
+    let currentDate = "";
+
+    for (const slot of filtered) {
+      if (slot.date !== currentDate) {
+        groups.push({
+          date: slot.date,
+          displayDate: slot.displayDate,
+          items: [],
+        });
+        currentDate = slot.date;
+      }
+      groups[groups.length - 1].items.push(slot);
+    }
+
+    return groups;
   }, [approvedSlots, calendarSearch]);
 
   const availabilityMonthDates = useMemo(() => {
@@ -703,9 +684,7 @@ export default function Page() {
     }
 
     if (!form.insuranceAcknowledged) {
-      setMessage(
-        "Please acknowledge the insurance requirement before submitting."
-      );
+      setMessage("Please acknowledge the insurance requirement before submitting.");
       return;
     }
 
@@ -863,7 +842,7 @@ export default function Page() {
       }
 
       setMessage(
-        `Booking approved. Approval email, Stripe deposit request, and insurance upload link were sent to ${approvedSlot.email}.`
+        `Booking approved. Approval email and Stripe deposit request were sent to ${approvedSlot.email}.`
       );
     } catch (error) {
       setMessage(`Booking approved, but follow-up failed: ${error.message}`);
@@ -938,45 +917,6 @@ export default function Page() {
     );
   }
 
-  async function handleInsuranceUpload(e) {
-    e.preventDefault();
-    setInsuranceMessage("");
-
-    if (!insuranceBookingId || !insuranceEmail || !insuranceFile) {
-      setInsuranceMessage("Please provide booking ID, email, and insurance file.");
-      return;
-    }
-
-    try {
-      const base64 = await fileToBase64(insuranceFile);
-
-      const response = await fetch("/.netlify/functions/insurance-upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bookingId: insuranceBookingId,
-          email: insuranceEmail,
-          fileName: insuranceFile.name,
-          fileType: insuranceFile.type || "application/octet-stream",
-          fileDataBase64: base64,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Insurance upload failed");
-      }
-
-      setInsuranceMessage("Insurance uploaded successfully and emailed to admin.");
-      setInsuranceFile(null);
-    } catch (error) {
-      setInsuranceMessage(error.message || "Insurance upload failed");
-    }
-  }
-
   async function handleAdminLogin() {
     setLoginError("");
 
@@ -1016,19 +956,19 @@ export default function Page() {
 
   return (
     <main className="page">
-      <section className="hero">
+      <section className="hero hero-polished">
         <div className="wrap">
           <div className="hero-logo">
             <img src="/logo.png" alt="Wollaston Gardens" />
           </div>
 
-          <div className="hero-grid">
-            <div>
-              <h1>Book your food truck for the season.</h1>
+          <div className="hero-shell">
+            <div className="hero-copy">
+              <div className="hero-kicker">Seasonal Food Truck Reservations</div>
+              <h1>Book your food truck at Wollaston Gardens.</h1>
               <p className="lead">
-                Vendors can request available dates and shifts throughout the season.
-                Reservations are only confirmed after admin approval and approved
-                bookings automatically appear on the public Seasonal Calendar.
+                Request seasonal shifts, choose from multiple on-site locations,
+                and join the public calendar once your reservation is approved.
               </p>
 
               <div className="cta-row">
@@ -1038,36 +978,12 @@ export default function Page() {
               </div>
             </div>
 
-            <SectionCard
-              title="Vendor Information"
-              subtitle="Important policies for food truck reservations."
-            >
-              <div className="stack-sm">
-                <div className="note-box">
-                  <strong>Approval required</strong>
-                  <div>
-                    Reservations appear on the Seasonal Calendar immediately after
-                    admin approval.
-                  </div>
-                </div>
-
-                <div className="note-box">
-                  <strong>Admin notifications</strong>
-                  <div>
-                    Admin receives text and email notifications for all reservation
-                    requests.
-                  </div>
-                </div>
-
-                <div className="note-box">
-                  <strong>Deposit + insurance</strong>
-                  <div>
-                    Deposit is requested after approval via {DEPOSIT_METHOD}. Insurance
-                    is submitted after approval.
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
+            <div className="hero-highlights">
+              <div className="highlight-pill">4 vendor locations</div>
+              <div className="highlight-pill">Admin approval required</div>
+              <div className="highlight-pill">Stripe deposit requests</div>
+              <div className="highlight-pill">Insurance upload flow</div>
+            </div>
           </div>
         </div>
       </section>
@@ -1109,9 +1025,7 @@ export default function Page() {
                       <label>Contact name *</label>
                       <input
                         value={form.contactName}
-                        onChange={(e) =>
-                          updateForm("contactName", e.target.value)
-                        }
+                        onChange={(e) => updateForm("contactName", e.target.value)}
                         placeholder="Your full name"
                       />
                     </div>
@@ -1191,8 +1105,7 @@ export default function Page() {
                           )
                           .map((slot) => (
                             <option key={slot.id} value={String(slot.id)}>
-                              {slot.displayDate} • {slot.displayTime} •{" "}
-                              {slot.slotLabel} • {getPricing(slot)}
+                              {slot.displayDate} • {slot.displayTime} • {slot.slotLabel} • {getPricing(slot)}
                             </option>
                           ))}
                       </select>
@@ -1203,9 +1116,7 @@ export default function Page() {
                     <label>Truck details / power requirements</label>
                     <textarea
                       value={form.requirements}
-                      onChange={(e) =>
-                        updateForm("requirements", e.target.value)
-                      }
+                      onChange={(e) => updateForm("requirements", e.target.value)}
                       placeholder="Tell us about your setup, electrical needs, and any special notes."
                       rows={5}
                     />
@@ -1213,45 +1124,35 @@ export default function Page() {
 
                   <div className="info-panel">
                     <div>
-                      <strong>Booking rules:</strong> Booking is not confirmed until
-                      the admin approves it.
+                      <strong>Booking rules:</strong> Booking is not confirmed until the admin approves it.
                     </div>
                     <div>
-                      <strong>Deposit:</strong> 50% non-refundable deposit due after
-                      approval via {DEPOSIT_METHOD}. Refundable only if admin closes
-                      the venue due to weather, unforeseen circumstances, admin
-                      cancellation, or non-approval.
+                      <strong>Deposit:</strong> 50% non-refundable deposit due after approval via {DEPOSIT_METHOD}. Refundable only if admin closes the venue due to weather, unforeseen circumstances, admin cancellation, or non-approval.
                     </div>
                     <div>
-                      <strong>Operations:</strong> Power will be provided. Generators
-                      are not to be used during opening hours unless necessary.
+                      <strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.
                     </div>
                     <div>
-                      <strong>Insurance:</strong> Proof of insurance is required after
-                      approval and deposit payment, and must be provided within 48
-                      hours or the reservation may be cancelled.
+                      <strong>Insurance:</strong> Proof of insurance is required after approval and deposit payment, and must be provided within 48 hours or the reservation may be cancelled.
                     </div>
                     <div>
-                      <strong>Vendor mix:</strong> Vendor mix is reviewed manually by
-                      admin.
+                      <strong>Vendor mix:</strong> Vendor mix is reviewed manually by admin.
                     </div>
                   </div>
 
                   <div className="note-box">
                     <div className="strong-row">Vendor contract preview</div>
                     <p>
-                      Vendor agrees to operate only during approved hours, comply with
-                      venue rules, submit required insurance, avoid unauthorized
-                      generator use, and report sales accurately for percentage rent.
+                      Vendor agrees to operate only during approved hours, comply with venue rules,
+                      submit required insurance, avoid unauthorized generator use, and report sales
+                      accurately for percentage rent.
                     </p>
 
                     <label className="check">
                       <input
                         type="checkbox"
                         checked={form.acceptedContract}
-                        onChange={(e) =>
-                          updateForm("acceptedContract", e.target.checked)
-                        }
+                        onChange={(e) => updateForm("acceptedContract", e.target.checked)}
                       />
                       <span>I reviewed and accept the contract terms.</span>
                     </label>
@@ -1260,16 +1161,10 @@ export default function Page() {
                       <input
                         type="checkbox"
                         checked={form.insuranceAcknowledged}
-                        onChange={(e) =>
-                          updateForm(
-                            "insuranceAcknowledged",
-                            e.target.checked
-                          )
-                        }
+                        onChange={(e) => updateForm("insuranceAcknowledged", e.target.checked)}
                       />
                       <span>
-                        I understand proof of insurance is required within 48 hours
-                        after approval and deposit payment.
+                        I understand proof of insurance is required within 48 hours after approval and deposit payment.
                       </span>
                     </label>
                   </div>
@@ -1278,96 +1173,33 @@ export default function Page() {
                     Submit Booking Request
                   </button>
 
-                  {message ? (
-                    <div className="alert alert-warn">{message}</div>
-                  ) : null}
+                  {message ? <div className="alert alert-warn">{message}</div> : null}
                 </form>
               </SectionCard>
 
-              <div className="stack">
-                <SectionCard
-                  title="Booking Policies"
-                  subtitle="Key information vendors need before requesting a reservation."
-                >
-                  <div className="stack-sm">
-                    <div className="note-box">
-                      <strong>Pricing</strong>
-                      <div>
-                        Pricing varies by season, shift length, and full-day
-                        reservations.
-                      </div>
-                    </div>
-                    <div className="note-box">
-                      <strong>Full-day priority</strong>
-                      <div>
-                        Saturday and Sunday full-day requests have priority over split
-                        shifts when approved by admin.
-                      </div>
-                    </div>
-                    <div className="note-box">
-                      <strong>Utilities</strong>
-                      <div>
-                        Power is provided by the venue. Generators should only be used
-                        when necessary.
-                      </div>
-                    </div>
-                    <div className="note-box">
-                      <strong>Approval + insurance</strong>
-                      <div>
-                        Admin approval is required before public listing. Insurance
-                        proof is required after approval and deposit payment.
-                      </div>
-                    </div>
+              <SectionCard
+                title="Booking Policies"
+                subtitle="Key information vendors need before requesting a reservation."
+              >
+                <div className="stack-sm">
+                  <div className="note-box">
+                    <strong>Pricing</strong>
+                    <div>Pricing varies by season, shift length, and full-day reservations.</div>
                   </div>
-                </SectionCard>
-
-                <div id="insurance-upload">
-                  <SectionCard
-                    title="Upload Insurance"
-                    subtitle="Approved vendors can upload proof of insurance here using the link from their approval email."
-                  >
-                    <form className="stack" onSubmit={handleInsuranceUpload}>
-                      <div>
-                        <label>Booking ID *</label>
-                        <input
-                          value={insuranceBookingId}
-                          onChange={(e) => setInsuranceBookingId(e.target.value)}
-                          placeholder="Enter booking ID from your approval link"
-                        />
-                      </div>
-
-                      <div>
-                        <label>Vendor email *</label>
-                        <input
-                          type="email"
-                          value={insuranceEmail}
-                          onChange={(e) => setInsuranceEmail(e.target.value)}
-                          placeholder="Enter the same email used for booking"
-                        />
-                      </div>
-
-                      <div>
-                        <label>Insurance file *</label>
-                        <input
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg,.webp"
-                          onChange={(e) =>
-                            setInsuranceFile(e.target.files?.[0] || null)
-                          }
-                        />
-                      </div>
-
-                      <button className="btn btn-primary" type="submit">
-                        Upload Insurance
-                      </button>
-
-                      {insuranceMessage ? (
-                        <div className="alert alert-warn">{insuranceMessage}</div>
-                      ) : null}
-                    </form>
-                  </SectionCard>
+                  <div className="note-box">
+                    <strong>Full-day priority</strong>
+                    <div>Saturday and Sunday full-day requests have priority over split shifts when approved by admin.</div>
+                  </div>
+                  <div className="note-box">
+                    <strong>Utilities</strong>
+                    <div>Power is provided by the venue. Generators should only be used when necessary.</div>
+                  </div>
+                  <div className="note-box">
+                    <strong>Approval + insurance</strong>
+                    <div>Admin approval is required before public listing. Insurance proof is required after approval and deposit payment.</div>
+                  </div>
                 </div>
-              </div>
+              </SectionCard>
             </div>
           ) : (
             <div className="availability-layout">
@@ -1490,15 +1322,16 @@ export default function Page() {
       </section>
 
       <section id="calendar" className="section section-light">
-        <div className="wrap two-col">
-          <div>
-            <h2>Seasonal Calendar</h2>
-            <p>
-              Visitors can see approved vendors, cuisine types, and reserved shifts
-              for the season.
-            </p>
+        <div className="wrap">
+          <div className="calendar-section-head">
+            <div>
+              <h2>Seasonal Calendar</h2>
+              <p>
+                Browse approved vendors by date, cuisine, shift, and location.
+              </p>
+            </div>
 
-            <div className="search-wrap">
+            <div className="search-wrap calendar-search-wide">
               <label>Search calendar</label>
               <input
                 value={calendarSearch}
@@ -1506,57 +1339,42 @@ export default function Page() {
                 placeholder="Search by vendor, cuisine, shift, date, or location"
               />
             </div>
-
-            <div className="stack">
-              {publicCalendar.length === 0 ? (
-                <div className="empty">
-                  No approved public events match your search.
-                </div>
-              ) : (
-                publicCalendar.map((event) => (
-                  <div key={event.id} className="calendar-item">
-                    <div>
-                      <div className="subtle">{event.displayDate}</div>
-                      <div className="calendar-name">{event.truck}</div>
-                      <div className="subtle">
-                        {event.cuisine} • {event.slotLabel} • {event.location}
-                      </div>
-                    </div>
-                    <div className="calendar-time">{event.displayTime}</div>
-                  </div>
-                ))
-              )}
-            </div>
           </div>
 
-          <SectionCard
-            title="Season Overview"
-            subtitle="Reservation highlights and public-facing rules."
-          >
-            <div className="stack-sm">
-              <div className="note-box">
-                <strong>Approval required</strong>
-                <div>
-                  Reservations appear on the Seasonal Calendar immediately after
-                  admin approval.
-                </div>
-              </div>
-              <div className="note-box">
-                <strong>Admin notifications</strong>
-                <div>
-                  Admin receives text and email notifications for all reservation
-                  requests.
-                </div>
-              </div>
-              <div className="note-box">
-                <strong>Post-approval tracking</strong>
-                <div>
-                  Admin can request deposit, mark deposit received, mark insurance
-                  received, and cancel reservations at any time.
-                </div>
-              </div>
+          {groupedPublicCalendar.length === 0 ? (
+            <div className="empty">
+              No approved public events match your search.
             </div>
-          </SectionCard>
+          ) : (
+            <div className="public-date-groups">
+              {groupedPublicCalendar.map((group) => (
+                <div key={group.date} className="public-date-group">
+                  <div className="public-date-header">
+                    <div className="public-date-title">{group.displayDate}</div>
+                    <div className="public-date-count">
+                      {group.items.length} vendor{group.items.length === 1 ? "" : "s"}
+                    </div>
+                  </div>
+
+                  <div className="public-date-items">
+                    {group.items.map((event) => (
+                      <div key={event.id} className="public-event-card">
+                        <div className="public-event-main">
+                          <div className="public-event-name">{event.truck}</div>
+                          <div className="public-event-meta">
+                            <span>{event.cuisine}</span>
+                            <span>{event.slotLabel}</span>
+                            <span>{event.location}</span>
+                          </div>
+                        </div>
+                        <div className="public-event-time">{event.displayTime}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -1589,9 +1407,7 @@ export default function Page() {
                   Login
                 </button>
 
-                {loginError ? (
-                  <div className="alert alert-warn">{loginError}</div>
-                ) : null}
+                {loginError ? <div className="alert alert-warn">{loginError}</div> : null}
               </div>
             </SectionCard>
           ) : (
@@ -1624,11 +1440,10 @@ export default function Page() {
                   </div>
 
                   <div className="note-box">
-                    Admin receives text and email notifications for all reservation
-                    requests. Vendors are added to the public calendar immediately after
-                    admin approval. Admin can request deposit payment, mark deposit
-                    received, mark insurance received, and cancel any reservation at
-                    their discretion.
+                    Admin receives text and email notifications for all reservation requests.
+                    Vendors are added to the public calendar immediately after admin approval.
+                    Admin can request deposit payment, mark deposit received, mark insurance
+                    received, and cancel any reservation at their discretion.
                   </div>
 
                   <div className="note-box">
@@ -1663,8 +1478,7 @@ export default function Page() {
                               <div className="admin-main">
                                 <div className="calendar-name">{slot.truck}</div>
                                 <div className="subtle">
-                                  {slot.displayDate} • {slot.location} •{" "}
-                                  {slot.displayTime} • {slot.slotLabel}
+                                  {slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}
                                 </div>
 
                                 <div className="admin-grid">
@@ -1679,9 +1493,7 @@ export default function Page() {
 
                                 {conflicts.length > 0 ? (
                                   <div className="alert alert-warn">
-                                    <strong>Conflict notice:</strong> This request
-                                    conflicts with {conflicts.length} split/full-day
-                                    request(s). Full-day approvals take priority.
+                                    <strong>Conflict notice:</strong> This request conflicts with {conflicts.length} split/full-day request(s). Full-day approvals take priority.
                                   </div>
                                 ) : null}
                               </div>
@@ -1719,8 +1531,7 @@ export default function Page() {
                             <div className="admin-main">
                               <div className="calendar-name">{slot.truck}</div>
                               <div className="subtle">
-                                {slot.displayDate} • {slot.location} •{" "}
-                                {slot.displayTime} • {slot.slotLabel}
+                                {slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}
                               </div>
 
                               <div className="admin-grid">
@@ -1729,21 +1540,10 @@ export default function Page() {
                                 <div>{getPricing(slot)}</div>
                                 <div>{slot.email}</div>
                                 <div>{slot.phone || "No phone provided"}</div>
-                                <div>
-                                  Deposit requested:{" "}
-                                  {slot.depositRequested ? "Yes" : "No"}
-                                </div>
-                                <div>
-                                  Deposit received:{" "}
-                                  {slot.depositReceived ? "Yes" : "No"}
-                                </div>
-                                <div>
-                                  Insurance received:{" "}
-                                  {slot.insuranceReceived ? "Yes" : "No"}
-                                </div>
-                                <div>
-                                  Cancel reason: {slot.cancelReason || "None"}
-                                </div>
+                                <div>Deposit requested: {slot.depositRequested ? "Yes" : "No"}</div>
+                                <div>Deposit received: {slot.depositReceived ? "Yes" : "No"}</div>
+                                <div>Insurance received: {slot.insuranceReceived ? "Yes" : "No"}</div>
+                                <div>Cancel reason: {slot.cancelReason || "None"}</div>
                               </div>
                             </div>
 
@@ -1754,9 +1554,7 @@ export default function Page() {
                                   toggleApprovedFlag(slot.id, "depositRequested")
                                 }
                               >
-                                {slot.depositRequested
-                                  ? "Deposit Requested"
-                                  : "Request Deposit"}
+                                {slot.depositRequested ? "Deposit Requested" : "Request Deposit"}
                               </button>
 
                               <button
@@ -1765,9 +1563,7 @@ export default function Page() {
                                   toggleApprovedFlag(slot.id, "depositReceived")
                                 }
                               >
-                                {slot.depositReceived
-                                  ? "Deposit Received"
-                                  : "Mark Deposit Received"}
+                                {slot.depositReceived ? "Deposit Received" : "Mark Deposit Received"}
                               </button>
 
                               <button
@@ -1776,9 +1572,7 @@ export default function Page() {
                                   toggleApprovedFlag(slot.id, "insuranceReceived")
                                 }
                               >
-                                {slot.insuranceReceived
-                                  ? "Insurance Received"
-                                  : "Mark Insurance Received"}
+                                {slot.insuranceReceived ? "Insurance Received" : "Mark Insurance Received"}
                               </button>
 
                               <button
