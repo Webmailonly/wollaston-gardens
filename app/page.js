@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-const ADMIN_PASSWORD = "venueadmin";
 const VENUE_NAME = "Wollaston Gardens";
 const ADMIN_EMAIL = "info@thewollastongardens.com";
 const ADMIN_PHONE = "617 903 0736";
@@ -380,10 +379,6 @@ function isSlotBlockedByDateConflict(slot, allSlots) {
   );
 }
 
-function slotOptionLabel(slot) {
-  return `${slot.displayDate} • ${slot.location} • ${slot.displayTime} • ${slot.slotLabel} • ${getPricing(slot)}`;
-}
-
 function escapeICS(value = "") {
   return String(value)
     .replace(/\\/g, "\\\\")
@@ -509,9 +504,10 @@ export default function Page() {
   const [form, setForm] = useState(emptyForm);
   const [calendarSearch, setCalendarSearch] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
-  const [adminMode, setAdminMode] = useState(false);
-  const [adminPasswordInput, setAdminPasswordInput] = useState("");
-  const [adminAuthError, setAdminAuthError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("vendor");
   const [availabilityMonth, setAvailabilityMonth] = useState("2026-05");
@@ -522,6 +518,13 @@ export default function Page() {
       const saved = await loadState();
       if (saved?.slots) setSlots(saved.slots);
     })();
+  }, []);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("wg_admin_auth");
+    if (stored === "true") {
+      setIsAdmin(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -902,21 +905,41 @@ export default function Page() {
     );
   }
 
-  function toggleAdminMode(nextChecked) {
-    if (!nextChecked) {
-      setAdminMode(false);
-      setAdminAuthError("");
-      return;
-    }
+  async function handleAdminLogin() {
+    setLoginError("");
 
-    if (adminPasswordInput === ADMIN_PASSWORD) {
-      setAdminMode(true);
-      setAdminAuthError("");
-      return;
-    }
+    try {
+      const res = await fetch("/.netlify/functions/admin-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      });
 
-    setAdminMode(false);
-    setAdminAuthError("Incorrect password for preview admin mode.");
+      const data = await res.json();
+
+      if (data.success) {
+        setIsAdmin(true);
+        window.localStorage.setItem("wg_admin_auth", "true");
+        return;
+      }
+
+      setLoginError("Invalid credentials");
+    } catch {
+      setLoginError("Login failed");
+    }
+  }
+
+  function handleLogout() {
+    setIsAdmin(false);
+    setLoginEmail("");
+    setLoginPassword("");
+    setLoginError("");
+    window.localStorage.removeItem("wg_admin_auth");
   }
 
   return (
@@ -1431,92 +1454,160 @@ export default function Page() {
 
       <section id="admin" className="section">
         <div className="wrap two-col">
-          <SectionCard
-            title="Admin Controls"
-            subtitle="Preview admin access and calendar export."
-          >
-            <div className="stack">
-              <div className="note-box">
-                <div className="admin-toggle">
-                  <div>
-                    <div className="strong-row">Admin mode</div>
-                    <div className="subtle">
-                      Requires password in preview mode.
-                    </div>
-                  </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={adminMode}
-                      onChange={(e) => toggleAdminMode(e.target.checked)}
-                    />
-                    <span className="slider"></span>
-                  </label>
+          {!isAdmin ? (
+            <SectionCard
+              title="Admin Login"
+              subtitle="Authorized access only."
+            >
+              <div className="stack" style={{ maxWidth: 420 }}>
+                <div>
+                  <label>Email</label>
+                  <input
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                  />
                 </div>
 
-                <input
-                  type="password"
-                  value={adminPasswordInput}
-                  onChange={(e) => setAdminPasswordInput(e.target.value)}
-                  placeholder="Enter admin password"
-                />
-              </div>
-
-              <div className="button-grid single-button">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => downloadICS(approvedSlots)}
-                >
-                  Export ICS Feed
-                </button>
-              </div>
-
-              <div className="note-box">
-                Admin receives text and email notifications for all reservation
-                requests. Vendors are added to the public calendar immediately after
-                admin approval. Admin can request deposit payment, mark deposit
-                received, mark insurance received, and cancel any reservation at
-                their discretion.
-              </div>
-
-              <div className="note-box">
-                Admin contact: {ADMIN_EMAIL} • {ADMIN_PHONE}
-              </div>
-
-              {adminAuthError ? (
-                <div className="alert alert-warn">{adminAuthError}</div>
-              ) : null}
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            title="Admin Approval Dashboard"
-            subtitle="Review pending requests, enforce full-day priority, manage approved reservations, and control public calendar syndication."
-          >
-            {!adminMode ? (
-              <div className="empty">
-                Admin mode is locked. Enter the preview password above and enable
-                admin mode to manage reservations.
-              </div>
-            ) : (
-              <div className="stack">
                 <div>
-                  <h4>Pending Requests</h4>
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                  />
+                </div>
 
-                  {pendingSlots.length === 0 ? (
-                    <div className="empty">No pending requests at the moment.</div>
-                  ) : (
-                    <div className="stack">
-                      {pendingSlots.map((slot) => {
-                        const relatedIds = getRelatedSlotIds(slot, slots);
-                        const conflicts = slots.filter(
-                          (candidate) =>
-                            relatedIds.includes(candidate.id) &&
-                            candidate.id !== slot.id &&
-                            ["pending", "approved"].includes(candidate.status)
-                        );
+                <button className="btn btn-primary" onClick={handleAdminLogin}>
+                  Login
+                </button>
 
-                        return (
+                {loginError ? (
+                  <div className="alert alert-warn">{loginError}</div>
+                ) : null}
+              </div>
+            </SectionCard>
+          ) : (
+            <>
+              <SectionCard
+                title="Admin Controls"
+                subtitle="Secure admin access and calendar export."
+              >
+                <div className="stack">
+                  <div className="note-box">
+                    <div className="strong-row">Admin access active</div>
+                    <div className="subtle">
+                      You are logged in as admin.
+                    </div>
+                  </div>
+
+                  <div className="button-grid">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => downloadICS(approvedSlots)}
+                    >
+                      Export ICS Feed
+                    </button>
+
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </button>
+                  </div>
+
+                  <div className="note-box">
+                    Admin receives text and email notifications for all reservation
+                    requests. Vendors are added to the public calendar immediately after
+                    admin approval. Admin can request deposit payment, mark deposit
+                    received, mark insurance received, and cancel any reservation at
+                    their discretion.
+                  </div>
+
+                  <div className="note-box">
+                    Admin contact: {ADMIN_EMAIL} • {ADMIN_PHONE}
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                title="Admin Approval Dashboard"
+                subtitle="Review pending requests, enforce full-day priority, manage approved reservations, and control public calendar syndication."
+              >
+                <div className="stack">
+                  <div>
+                    <h4>Pending Requests</h4>
+
+                    {pendingSlots.length === 0 ? (
+                      <div className="empty">No pending requests at the moment.</div>
+                    ) : (
+                      <div className="stack">
+                        {pendingSlots.map((slot) => {
+                          const relatedIds = getRelatedSlotIds(slot, slots);
+                          const conflicts = slots.filter(
+                            (candidate) =>
+                              relatedIds.includes(candidate.id) &&
+                              candidate.id !== slot.id &&
+                              ["pending", "approved"].includes(candidate.status)
+                          );
+
+                          return (
+                            <div key={slot.id} className="admin-card">
+                              <div className="admin-main">
+                                <div className="calendar-name">{slot.truck}</div>
+                                <div className="subtle">
+                                  {slot.displayDate} • {slot.location} •{" "}
+                                  {slot.displayTime} • {slot.slotLabel}
+                                </div>
+
+                                <div className="admin-grid">
+                                  <div>{slot.email}</div>
+                                  <div>{slot.phone || "No phone provided"}</div>
+                                  <div>{slot.cuisine || "Cuisine not specified"}</div>
+                                  <div>{slot.location}</div>
+                                  <div>{slot.requirements || "No setup notes"}</div>
+                                  <div>{getPricing(slot)}</div>
+                                  <div>{getDepositText(slot)}</div>
+                                </div>
+
+                                {conflicts.length > 0 ? (
+                                  <div className="alert alert-warn">
+                                    <strong>Conflict notice:</strong> This request
+                                    conflicts with {conflicts.length} split/full-day
+                                    request(s). Full-day approvals take priority.
+                                  </div>
+                                ) : null}
+                              </div>
+
+                              <div className="admin-actions">
+                                <button
+                                  className="btn btn-primary"
+                                  onClick={() => approveSlot(slot.id)}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  className="btn btn-secondary"
+                                  onClick={() => declineSlot(slot.id)}
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4>Approved Reservations</h4>
+
+                    {approvedSlots.length === 0 ? (
+                      <div className="empty">No approved reservations yet.</div>
+                    ) : (
+                      <div className="stack">
+                        {approvedSlots.map((slot) => (
                           <div key={slot.id} className="admin-card">
                             <div className="admin-main">
                               <div className="calendar-name">{slot.truck}</div>
@@ -1526,134 +1617,79 @@ export default function Page() {
                               </div>
 
                               <div className="admin-grid">
-                                <div>{slot.email}</div>
-                                <div>{slot.phone || "No phone provided"}</div>
                                 <div>{slot.cuisine || "Cuisine not specified"}</div>
                                 <div>{slot.location}</div>
-                                <div>{slot.requirements || "No setup notes"}</div>
                                 <div>{getPricing(slot)}</div>
-                                <div>{getDepositText(slot)}</div>
-                              </div>
-
-                              {conflicts.length > 0 ? (
-                                <div className="alert alert-warn">
-                                  <strong>Conflict notice:</strong> This request
-                                  conflicts with {conflicts.length} split/full-day
-                                  request(s). Full-day approvals take priority.
+                                <div>{slot.email}</div>
+                                <div>{slot.phone || "No phone provided"}</div>
+                                <div>
+                                  Deposit requested:{" "}
+                                  {slot.depositRequested ? "Yes" : "No"}
                                 </div>
-                              ) : null}
+                                <div>
+                                  Deposit received:{" "}
+                                  {slot.depositReceived ? "Yes" : "No"}
+                                </div>
+                                <div>
+                                  Insurance received:{" "}
+                                  {slot.insuranceReceived ? "Yes" : "No"}
+                                </div>
+                                <div>
+                                  Cancel reason: {slot.cancelReason || "None"}
+                                </div>
+                              </div>
                             </div>
 
                             <div className="admin-actions">
                               <button
-                                className="btn btn-primary"
-                                onClick={() => approveSlot(slot.id)}
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "depositRequested")
+                                }
                               >
-                                Approve
+                                {slot.depositRequested
+                                  ? "Deposit Requested"
+                                  : "Request Deposit"}
                               </button>
+
                               <button
                                 className="btn btn-secondary"
-                                onClick={() => declineSlot(slot.id)}
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "depositReceived")
+                                }
                               >
-                                Decline
+                                {slot.depositReceived
+                                  ? "Deposit Received"
+                                  : "Mark Deposit Received"}
+                              </button>
+
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "insuranceReceived")
+                                }
+                              >
+                                {slot.insuranceReceived
+                                  ? "Insurance Received"
+                                  : "Mark Insurance Received"}
+                              </button>
+
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => cancelReservation(slot.id)}
+                              >
+                                Cancel Reservation
                               </button>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                <div>
-                  <h4>Approved Reservations</h4>
-
-                  {approvedSlots.length === 0 ? (
-                    <div className="empty">No approved reservations yet.</div>
-                  ) : (
-                    <div className="stack">
-                      {approvedSlots.map((slot) => (
-                        <div key={slot.id} className="admin-card">
-                          <div className="admin-main">
-                            <div className="calendar-name">{slot.truck}</div>
-                            <div className="subtle">
-                              {slot.displayDate} • {slot.location} •{" "}
-                              {slot.displayTime} • {slot.slotLabel}
-                            </div>
-
-                            <div className="admin-grid">
-                              <div>{slot.cuisine || "Cuisine not specified"}</div>
-                              <div>{slot.location}</div>
-                              <div>{getPricing(slot)}</div>
-                              <div>{slot.email}</div>
-                              <div>{slot.phone || "No phone provided"}</div>
-                              <div>
-                                Deposit requested:{" "}
-                                {slot.depositRequested ? "Yes" : "No"}
-                              </div>
-                              <div>
-                                Deposit received:{" "}
-                                {slot.depositReceived ? "Yes" : "No"}
-                              </div>
-                              <div>
-                                Insurance received:{" "}
-                                {slot.insuranceReceived ? "Yes" : "No"}
-                              </div>
-                              <div>
-                                Cancel reason: {slot.cancelReason || "None"}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="admin-actions">
-                            <button
-                              className="btn btn-secondary"
-                              onClick={() =>
-                                toggleApprovedFlag(slot.id, "depositRequested")
-                              }
-                            >
-                              {slot.depositRequested
-                                ? "Deposit Requested"
-                                : "Request Deposit"}
-                            </button>
-
-                            <button
-                              className="btn btn-secondary"
-                              onClick={() =>
-                                toggleApprovedFlag(slot.id, "depositReceived")
-                              }
-                            >
-                              {slot.depositReceived
-                                ? "Deposit Received"
-                                : "Mark Deposit Received"}
-                            </button>
-
-                            <button
-                              className="btn btn-secondary"
-                              onClick={() =>
-                                toggleApprovedFlag(slot.id, "insuranceReceived")
-                              }
-                            >
-                              {slot.insuranceReceived
-                                ? "Insurance Received"
-                                : "Mark Insurance Received"}
-                            </button>
-
-                            <button
-                              className="btn btn-danger"
-                              onClick={() => cancelReservation(slot.id)}
-                            >
-                              Cancel Reservation
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </SectionCard>
+              </SectionCard>
+            </>
+          )}
         </div>
       </section>
     </main>
