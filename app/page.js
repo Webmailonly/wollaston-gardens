@@ -945,7 +945,12 @@ export default function Page() {
   return (
     <main className="page">
       <section className="hero">
-        <div className="wrap hero-grid">
+  <div className="wrap">
+    <div className="hero-logo">
+      <img src="/logo.png" alt="Wollaston Gardens" />
+    </div>
+
+    <div className="hero-grid">
           <div>
             <h1>Book your food truck for the season.</h1>
             <p className="lead">
@@ -993,8 +998,9 @@ export default function Page() {
 
             </div>
           </SectionCard>
-        </div>
-      </section>
+          </div>
+  </div>
+</section>
 
       <section id="booking" className="section">
         <div className="wrap">
