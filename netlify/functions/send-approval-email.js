@@ -103,7 +103,7 @@ exports.handler = async (event) => {
     if (phone && sid && token && from) {
       const auth = Buffer.from(`${sid}:${token}`).toString("base64");
 
-      await fetch(
+      const smsResponse = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
         {
           method: "POST",
@@ -114,10 +114,15 @@ exports.handler = async (event) => {
           body: new URLSearchParams({
             From: from,
             To: phone,
-            Body: `Your booking at Wollaston Gardens is approved for ${displayDate} ${displayTime} at ${location}. Check your email for deposit and insurance instructions.`,
+            Body: `Your Wollaston Gardens booking is approved for ${displayDate} ${displayTime} at ${location}. Check your email for deposit and insurance instructions.`,
           }),
         }
       );
+
+      if (!smsResponse.ok) {
+        const smsText = await smsResponse.text();
+        throw new Error(`Approval SMS failed: ${smsText}`);
+      }
     }
 
     return {
