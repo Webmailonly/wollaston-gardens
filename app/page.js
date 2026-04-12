@@ -451,27 +451,6 @@ function downloadICS(events) {
   window.URL.revokeObjectURL(url);
 }
 
-function Metric({ label, value }) {
-  return (
-    <div className="metric">
-      <div className="metric-label">{label}</div>
-      <div className="metric-value">{value}</div>
-    </div>
-  );
-}
-
-function SectionCard({ title, subtitle, children }) {
-  return (
-    <div className="card">
-      <div className="card-head">
-        <h3>{title}</h3>
-        {subtitle ? <p>{subtitle}</p> : null}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 function buildMonthGrid(dateString) {
   const [year, month] = dateString.split("-").map(Number);
   const first = new Date(year, month - 1, 1);
@@ -493,6 +472,40 @@ function buildMonthGrid(dateString) {
   return cells;
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function Metric({ label, value }) {
+  return (
+    <div className="metric">
+      <div className="metric-label">{label}</div>
+      <div className="metric-value">{value}</div>
+    </div>
+  );
+}
+
+function SectionCard({ title, subtitle, children }) {
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h3>{title}</h3>
+        {subtitle ? <p>{subtitle}</p> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 const initialSlots = createSlotsFromSchedule();
 
 export default function Page() {
@@ -509,6 +522,11 @@ export default function Page() {
   const [availabilityMonth, setAvailabilityMonth] = useState("2026-05");
   const [selectedDate, setSelectedDate] = useState("");
 
+  const [insuranceBookingId, setInsuranceBookingId] = useState("");
+  const [insuranceEmail, setInsuranceEmail] = useState("");
+  const [insuranceFile, setInsuranceFile] = useState(null);
+  const [insuranceMessage, setInsuranceMessage] = useState("");
+
   useEffect(() => {
     (async () => {
       const saved = await loadState();
@@ -519,6 +537,20 @@ export default function Page() {
   useEffect(() => {
     const stored = window.localStorage.getItem("wg_admin_auth");
     if (stored === "true") setIsAdmin(true);
+
+    const params = new URLSearchParams(window.location.search);
+    const insurance = params.get("insurance");
+    const bookingId = params.get("bookingId");
+
+    if (insurance === "1" && bookingId) {
+      setInsuranceBookingId(bookingId);
+      setTimeout(() => {
+        document.getElementById("insurance-upload")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 300);
+    }
   }, []);
 
   useEffect(() => {
@@ -619,8 +651,6 @@ export default function Page() {
         groups[key] = {
           slotLabel: slot.slotLabel,
           displayTime: slot.displayTime,
-          slotKind: slot.slotKind,
-          durationHours: slot.durationHours,
           locations: [],
         };
       }
@@ -684,7 +714,9 @@ export default function Page() {
     }
 
     if (!form.insuranceAcknowledged) {
-      setMessage("Please acknowledge the insurance requirement before submitting.");
+      setMessage(
+        "Please acknowledge the insurance requirement before submitting."
+      );
       return;
     }
 
@@ -820,19 +852,19 @@ export default function Page() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-  bookingId: approvedSlot.id,
-  truck: approvedSlot.truck,
-  contactName: approvedSlot.contactName,
-  email: approvedSlot.email,
-  phone: approvedSlot.phone,
-  cuisine: approvedSlot.cuisine,
-  slotLabel: approvedSlot.slotLabel,
-  displayDate: approvedSlot.displayDate,
-  displayTime: approvedSlot.displayTime,
-  location: approvedSlot.location,
-  depositText: getDepositText(approvedSlot),
-  paymentLink: checkoutData.url,
-}),
+            bookingId: approvedSlot.id,
+            truck: approvedSlot.truck,
+            contactName: approvedSlot.contactName,
+            email: approvedSlot.email,
+            phone: approvedSlot.phone,
+            cuisine: approvedSlot.cuisine,
+            slotLabel: approvedSlot.slotLabel,
+            displayDate: approvedSlot.displayDate,
+            displayTime: approvedSlot.displayTime,
+            location: approvedSlot.location,
+            depositText: getDepositText(approvedSlot),
+            paymentLink: checkoutData.url,
+          }),
         }
       );
 
@@ -843,7 +875,7 @@ export default function Page() {
       }
 
       setMessage(
-        `Booking approved. Approval email and Stripe deposit request were sent to ${approvedSlot.email}.`
+        `Booking approved. Approval email, text notification, and Stripe deposit request were sent to ${approvedSlot.email}.`
       );
     } catch (error) {
       setMessage(`Booking approved, but follow-up failed: ${error.message}`);
@@ -906,7 +938,7 @@ export default function Page() {
     );
 
     setMessage(
-      `Reservation cancelled by admin and removed from the Season Calendar. Reason: ${reason}`
+      `Reservation cancelled by admin and removed from the Seasonal Calendar. Reason: ${reason}`
     );
   }
 
@@ -916,6 +948,45 @@ export default function Page() {
         slot.id !== slotId ? slot : { ...slot, [field]: !slot[field] }
       )
     );
+  }
+
+  async function handleInsuranceUpload(e) {
+    e.preventDefault();
+    setInsuranceMessage("");
+
+    if (!insuranceBookingId || !insuranceEmail || !insuranceFile) {
+      setInsuranceMessage("Please provide booking ID, email, and insurance file.");
+      return;
+    }
+
+    try {
+      const base64 = await fileToBase64(insuranceFile);
+
+      const response = await fetch("/.netlify/functions/insurance-upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookingId: insuranceBookingId,
+          email: insuranceEmail,
+          fileName: insuranceFile.name,
+          fileType: insuranceFile.type || "application/octet-stream",
+          fileDataBase64: base64,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Insurance upload failed");
+      }
+
+      setInsuranceMessage("Insurance uploaded successfully and emailed to admin.");
+      setInsuranceFile(null);
+    } catch (error) {
+      setInsuranceMessage(error.message || "Insurance upload failed");
+    }
   }
 
   async function handleAdminLogin() {
@@ -978,8 +1049,6 @@ export default function Page() {
                 </a>
               </div>
             </div>
-
-            
           </div>
         </div>
       </section>
@@ -1173,29 +1242,76 @@ export default function Page() {
                 </form>
               </SectionCard>
 
-              <SectionCard
-                title="Booking Policies"
-                subtitle="Key information vendors need before requesting a reservation."
-              >
-                <div className="stack-sm">
-                  <div className="note-box">
-                    <strong>Pricing</strong>
-                    <div>Pricing varies by season, shift length, and full-day reservations.</div>
+              <div className="stack">
+                <SectionCard
+                  title="Booking Policies"
+                  subtitle="Key information vendors need before requesting a reservation."
+                >
+                  <div className="stack-sm">
+                    <div className="note-box">
+                      <strong>Pricing</strong>
+                      <div>Pricing varies by season, shift length, and full-day reservations.</div>
+                    </div>
+                    <div className="note-box">
+                      <strong>Full-day priority</strong>
+                      <div>Saturday and Sunday full-day requests have priority over split shifts when approved by admin.</div>
+                    </div>
+                    <div className="note-box">
+                      <strong>Utilities</strong>
+                      <div>Power is provided by the venue. Generators should only be used when necessary.</div>
+                    </div>
+                    <div className="note-box">
+                      <strong>Approval + insurance</strong>
+                      <div>Admin approval is required before public listing. Insurance proof is required after approval and deposit payment.</div>
+                    </div>
                   </div>
-                  <div className="note-box">
-                    <strong>Full-day priority</strong>
-                    <div>Saturday and Sunday full-day requests have priority over split shifts when approved by admin.</div>
-                  </div>
-                  <div className="note-box">
-                    <strong>Utilities</strong>
-                    <div>Power is provided by the venue. Generators should only be used when necessary.</div>
-                  </div>
-                  <div className="note-box">
-                    <strong>Approval + insurance</strong>
-                    <div>Admin approval is required before public listing. Insurance proof is required after approval and deposit payment.</div>
-                  </div>
+                </SectionCard>
+
+                <div id="insurance-upload">
+                  <SectionCard
+                    title="Upload Insurance"
+                    subtitle="Approved vendors can upload proof of insurance here using the link from their approval email."
+                  >
+                    <form className="stack" onSubmit={handleInsuranceUpload}>
+                      <div>
+                        <label>Booking ID *</label>
+                        <input
+                          value={insuranceBookingId}
+                          onChange={(e) => setInsuranceBookingId(e.target.value)}
+                          placeholder="Enter booking ID from your approval link"
+                        />
+                      </div>
+
+                      <div>
+                        <label>Vendor email *</label>
+                        <input
+                          type="email"
+                          value={insuranceEmail}
+                          onChange={(e) => setInsuranceEmail(e.target.value)}
+                          placeholder="Enter the same email used for booking"
+                        />
+                      </div>
+
+                      <div>
+                        <label>Insurance file *</label>
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.webp"
+                          onChange={(e) => setInsuranceFile(e.target.files?.[0] || null)}
+                        />
+                      </div>
+
+                      <button className="btn btn-primary" type="submit">
+                        Upload Insurance
+                      </button>
+
+                      {insuranceMessage ? (
+                        <div className="alert alert-warn">{insuranceMessage}</div>
+                      ) : null}
+                    </form>
+                  </SectionCard>
                 </div>
-              </SectionCard>
+              </div>
             </div>
           ) : (
             <div className="availability-layout">
