@@ -588,9 +588,10 @@ export default function Page() {
   );
 
   const groupedPublicCalendar = useMemo(() => {
-    const filtered = approvedSlots
+    const q = calendarSearch.toLowerCase().trim();
+
+    const filteredApproved = approvedSlots
       .filter((slot) => {
-        const q = calendarSearch.toLowerCase();
         return (
           !q ||
           String(slot.truck || "").toLowerCase().includes(q) ||
@@ -606,22 +607,37 @@ export default function Page() {
         )
       );
 
-    const groups = [];
-    let currentDate = "";
+    const approvedByDate = new Map();
 
-    for (const slot of filtered) {
-      if (slot.date !== currentDate) {
-        groups.push({
-          date: slot.date,
-          displayDate: slot.displayDate,
-          items: [],
-        });
-        currentDate = slot.date;
+    for (const slot of filteredApproved) {
+      if (!approvedByDate.has(slot.date)) {
+        approvedByDate.set(slot.date, []);
       }
-      groups[groups.length - 1].items.push(slot);
+      approvedByDate.get(slot.date).push(slot);
     }
 
-    return groups;
+    const uniqueScheduleDates = Array.from(
+      new Set(SCHEDULE_ROWS.map(([date]) => date))
+    ).sort();
+
+    return uniqueScheduleDates
+      .map((date) => {
+        const [year, month, day] = date.split("-").map(Number);
+        const displayDate = `${getMonthName(month - 1)} ${day}, ${year}`;
+        const items = approvedByDate.get(date) || [];
+
+        return {
+          date,
+          displayDate,
+          items,
+        };
+      })
+      .filter((group) => {
+        if (!q) return true;
+        return (
+          group.displayDate.toLowerCase().includes(q) || group.items.length > 0
+        );
+      });
   }, [approvedSlots, calendarSearch]);
 
   const availabilityMonthDates = useMemo(() => {
@@ -1453,23 +1469,32 @@ export default function Page() {
             </div>
           </div>
 
-          {groupedPublicCalendar.length === 0 ? (
-            <div className="empty">
-              No approved public events match your search.
-            </div>
-          ) : (
-            <div className="public-date-groups">
-              {groupedPublicCalendar.map((group) => (
-                <div key={group.date} className="public-date-group">
-                  <div className="public-date-header">
-                    <div className="public-date-title">{group.displayDate}</div>
-                    <div className="public-date-count">
-                      {group.items.length} vendor{group.items.length === 1 ? "" : "s"}
-                    </div>
+          <div className="public-date-groups">
+            {groupedPublicCalendar.map((group) => (
+              <div key={group.date} className="public-date-group">
+                <div className="public-date-header">
+                  <div className="public-date-title">{group.displayDate}</div>
+                  <div className="public-date-count">
+                    {group.items.length === 0
+                      ? "No bookings yet"
+                      : `${group.items.length} vendor${group.items.length === 1 ? "" : "s"}`}
                   </div>
+                </div>
 
-                  <div className="public-date-items">
-                    {group.items.map((event) => (
+                <div className="public-date-items">
+                  {group.items.length === 0 ? (
+                    <div className="public-event-card">
+                      <div className="public-event-main">
+                        <div className="public-event-name">Available</div>
+                        <div className="public-event-meta">
+                          <span>Schedule open</span>
+                          <span>Check booking portal</span>
+                        </div>
+                      </div>
+                      <div className="public-event-time">No approved vendors yet</div>
+                    </div>
+                  ) : (
+                    group.items.map((event) => (
                       <div key={event.id} className="public-event-card">
                         <div className="public-event-main">
                           <div className="public-event-name">{event.truck}</div>
@@ -1481,12 +1506,12 @@ export default function Page() {
                         </div>
                         <div className="public-event-time">{event.displayTime}</div>
                       </div>
-                    ))}
-                  </div>
+                    ))
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
