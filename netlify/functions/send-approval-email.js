@@ -14,6 +14,7 @@ exports.handler = async (event) => {
       truck,
       contactName,
       email,
+      phone,
       cuisine,
       slotLabel,
       displayDate,
@@ -75,7 +76,7 @@ exports.handler = async (event) => {
       <p>Thank you.</p>
     `;
 
-    const response = await fetch("https://api.resend.com/emails", {
+    const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
@@ -89,10 +90,34 @@ exports.handler = async (event) => {
       }),
     });
 
-    const data = await response.json();
+    const emailData = await emailResponse.json();
 
-    if (!response.ok) {
-      throw new Error(data?.message || "Failed to send approval email");
+    if (!emailResponse.ok) {
+      throw new Error(emailData?.message || "Failed to send approval email");
+    }
+
+    const sid = process.env.TWILIO_ACCOUNT_SID;
+    const token = process.env.TWILIO_AUTH_TOKEN;
+    const from = process.env.TWILIO_FROM_NUMBER;
+
+    if (phone && sid && token && from) {
+      const auth = Buffer.from(`${sid}:${token}`).toString("base64");
+
+      await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            From: from,
+            To: phone,
+            Body: `Your booking at Wollaston Gardens is approved for ${displayDate} ${displayTime} at ${location}. Check your email for deposit and insurance instructions.`,
+          }),
+        }
+      );
     }
 
     return {
