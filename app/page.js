@@ -905,7 +905,7 @@ export default function Page() {
     );
 
     setMessage(
-      `Reservation cancelled by admin and removed from the Seasonal Calendar. Reason: ${reason}`
+      `Reservation cancelled by admin and removed from the Season Calendar. Reason: ${reason}`
     );
   }
 
@@ -978,12 +978,7 @@ export default function Page() {
               </div>
             </div>
 
-            <div className="hero-highlights">
-              <div className="highlight-pill">4 vendor locations</div>
-              <div className="highlight-pill">Admin approval required</div>
-              <div className="highlight-pill">Stripe deposit requests</div>
-              <div className="highlight-pill">Insurance upload flow</div>
-            </div>
+            
           </div>
         </div>
       </section>
