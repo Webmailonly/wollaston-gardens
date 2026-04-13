@@ -353,6 +353,11 @@ export default function CalendarPage() {
               }
 
               const dayNumber = Number(dateCell.split("-")[2]);
+              const dateObj = new Date(dateCell);
+              const dayOfWeek = dateObj.getDay();
+              const isClosedDay =
+                dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 3;
+
               const hasApprovedBooking = datesWithApprovedBookings.has(dateCell);
               const isSelected = selectedDate === dateCell;
 
@@ -360,24 +365,30 @@ export default function CalendarPage() {
                 <button
                   key={dateCell}
                   type="button"
-                  onClick={() => setSelectedDate(dateCell)}
+                  onClick={() => !isClosedDay && setSelectedDate(dateCell)}
+                  disabled={isClosedDay}
                   style={{
                     minHeight: 110,
                     borderRadius: 18,
                     border: isSelected
                       ? "2px solid #2563eb"
+                      : isClosedDay
+                      ? "1px solid #fecaca"
                       : hasApprovedBooking
                       ? "1px solid #bfdbfe"
                       : "1px solid #e2e8f0",
                     background: isSelected
                       ? "#eff6ff"
+                      : isClosedDay
+                      ? "#fef2f2"
                       : hasApprovedBooking
                       ? "#f8fbff"
                       : "#ffffff",
                     padding: 12,
                     textAlign: "left",
-                    cursor: "pointer",
+                    cursor: isClosedDay ? "not-allowed" : "pointer",
                     boxShadow: "0 4px 14px rgba(15,23,42,0.03)",
+                    opacity: isClosedDay ? 0.9 : 1,
                   }}
                 >
                   <div
@@ -391,7 +402,17 @@ export default function CalendarPage() {
                     {dayNumber}
                   </div>
 
-                  {hasApprovedBooking ? (
+                  {isClosedDay ? (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#ef4444",
+                      }}
+                    >
+                      Closed
+                    </div>
+                  ) : hasApprovedBooking ? (
                     <div
                       style={{
                         fontSize: 12,
@@ -446,7 +467,7 @@ export default function CalendarPage() {
             >
               {selectedDate
                 ? "Approved vendors scheduled for this date."
-                : "Click a date on the calendar to view scheduled vendors."}
+                : "Click an open date on the calendar to view scheduled vendors."}
             </div>
           </div>
 
@@ -461,7 +482,7 @@ export default function CalendarPage() {
                 background: "#f8fafc",
               }}
             >
-              Select a date above to view the food truck schedule.
+              Select an open date above to view the food truck schedule.
             </div>
           ) : selectedDateSlots.length === 0 ? (
             <div
