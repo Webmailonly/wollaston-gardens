@@ -353,7 +353,8 @@ export default function CalendarPage() {
               }
 
               const dayNumber = Number(dateCell.split("-")[2]);
-              const dateObj = new Date(dateCell);
+              const [y, m, d] = dateCell.split("-").map(Number);
+              const dateObj = new Date(y, m - 1, d);
               const dayOfWeek = dateObj.getDay();
               const isClosedDay =
                 dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 3;
