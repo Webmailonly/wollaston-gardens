@@ -112,6 +112,27 @@ function getMonthName(monthIndex) {
   ][monthIndex];
 }
 
+function buildMonthGrid(dateString) {
+  const [year, month] = dateString.split("-").map(Number);
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  const startDay = first.getDay();
+  const daysInMonth = last.getDate();
+
+  const cells = [];
+
+  for (let i = 0; i < startDay; i++) cells.push(null);
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    cells.push(iso);
+  }
+
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return cells;
+}
+
 async function loadState() {
   try {
     const response = await fetch("/.netlify/functions/bookings-get");
@@ -125,6 +146,8 @@ async function loadState() {
 export default function CalendarPage() {
   const [slots, setSlots] = useState([]);
   const [calendarSearch, setCalendarSearch] = useState("");
+  const [month, setMonth] = useState("2026-05");
+  const [selectedDate, setSelectedDate] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -139,52 +162,41 @@ export default function CalendarPage() {
     return slots.filter((slot) => slot.status === "approved");
   }, [slots]);
 
-  const groupedCalendar = useMemo(() => {
+  const monthDates = useMemo(() => buildMonthGrid(month), [month]);
+
+  const searchableApprovedSlots = useMemo(() => {
     const q = calendarSearch.toLowerCase().trim();
 
-    const approvedByDate = new Map();
-
-    for (const slot of approvedSlots) {
-      const matches =
+    return approvedSlots.filter((slot) => {
+      return (
         !q ||
         String(slot.truck || "").toLowerCase().includes(q) ||
         String(slot.displayDate || "").toLowerCase().includes(q) ||
         String(slot.cuisine || "").toLowerCase().includes(q) ||
         String(slot.slotLabel || "").toLowerCase().includes(q) ||
-        String(slot.location || "").toLowerCase().includes(q);
-
-      if (!matches) continue;
-
-      if (!approvedByDate.has(slot.date)) {
-        approvedByDate.set(slot.date, []);
-      }
-
-      approvedByDate.get(slot.date).push(slot);
-    }
-
-    const uniqueDates = Array.from(new Set(SCHEDULE_ROWS.map(([date]) => date))).sort();
-
-    return uniqueDates
-      .map((date) => {
-        const [year, month, day] = date.split("-").map(Number);
-        const displayDate = `${getMonthName(month - 1)} ${day}, ${year}`;
-        const items = (approvedByDate.get(date) || []).sort((a, b) =>
-          `${a.startTime}${a.location}`.localeCompare(`${b.startTime}${b.location}`)
-        );
-
-        return {
-          date,
-          displayDate,
-          items,
-        };
-      })
-      .filter((group) => {
-        if (!q) return true;
-        return (
-          group.displayDate.toLowerCase().includes(q) || group.items.length > 0
-        );
-      });
+        String(slot.location || "").toLowerCase().includes(q)
+      );
+    });
   }, [approvedSlots, calendarSearch]);
+
+  const datesWithApprovedBookings = useMemo(() => {
+    return new Set(searchableApprovedSlots.map((slot) => slot.date));
+  }, [searchableApprovedSlots]);
+
+  const selectedDateSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return searchableApprovedSlots
+      .filter((slot) => slot.date === selectedDate)
+      .sort((a, b) =>
+        `${a.startTime}${a.location}`.localeCompare(`${b.startTime}${b.location}`)
+      );
+  }, [searchableApprovedSlots, selectedDate]);
+
+  const selectedDateDisplay = useMemo(() => {
+    if (!selectedDate) return "";
+    const [year, monthNum, day] = selectedDate.split("-").map(Number);
+    return `${getMonthName(monthNum - 1)} ${day}, ${year}`;
+  }, [selectedDate]);
 
   return (
     <main
@@ -195,7 +207,7 @@ export default function CalendarPage() {
         color: "#0f172a",
       }}
     >
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+      <div style={{ maxWidth: 1150, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <h1
             style={{
@@ -211,12 +223,12 @@ export default function CalendarPage() {
           <p
             style={{
               margin: "12px auto 0",
-              maxWidth: 700,
+              maxWidth: 720,
               fontSize: 18,
               color: "#475569",
             }}
           >
-            See upcoming food truck vendors scheduled at Wollaston Gardens.
+            View upcoming food truck vendors scheduled at Wollaston Gardens.
           </p>
         </div>
 
@@ -225,201 +237,345 @@ export default function CalendarPage() {
             background: "#ffffff",
             border: "1px solid #e2e8f0",
             borderRadius: 24,
-            padding: 20,
+            padding: 22,
             marginBottom: 24,
             boxShadow: "0 10px 30px rgba(15,23,42,0.05)",
           }}
         >
-          <label
-            htmlFor="calendar-search"
+          <div
             style={{
-              display: "block",
-              fontSize: 14,
-              fontWeight: 700,
-              marginBottom: 8,
-              color: "#334155",
+              display: "flex",
+              gap: 16,
+              alignItems: "end",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              marginBottom: 18,
             }}
           >
-            Search calendar
-          </label>
-          <input
-            id="calendar-search"
-            value={calendarSearch}
-            onChange={(e) => setCalendarSearch(e.target.value)}
-            placeholder="Search by vendor, cuisine, date, shift, or location"
-            style={{
-              width: "100%",
-              padding: "14px 16px",
-              borderRadius: 14,
-              border: "1px solid #cbd5e1",
-              fontSize: 16,
-              outline: "none",
-            }}
-          />
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {groupedCalendar.map((group) => (
-            <section
-              key={group.date}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 24,
-                padding: 22,
-                boxShadow: "0 10px 30px rgba(15,23,42,0.05)",
-              }}
-            >
-              <div
+            <div style={{ minWidth: 220 }}>
+              <label
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 16,
-                  marginBottom: 16,
-                  paddingBottom: 14,
-                  borderBottom: "1px solid #e2e8f0",
-                  flexWrap: "wrap",
+                  display: "block",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  marginBottom: 8,
+                  color: "#334155",
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 28,
-                    fontWeight: 800,
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  {group.displayDate}
-                </div>
+                Month
+              </label>
+              <select
+                value={month}
+                onChange={(e) => {
+                  setMonth(e.target.value);
+                  setSelectedDate("");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "14px 16px",
+                  borderRadius: 14,
+                  border: "1px solid #cbd5e1",
+                  fontSize: 16,
+                  background: "#fff",
+                }}
+              >
+                <option value="2026-05">May 2026</option>
+                <option value="2026-06">June 2026</option>
+                <option value="2026-07">July 2026</option>
+                <option value="2026-08">August 2026</option>
+                <option value="2026-09">September 2026</option>
+                <option value="2026-10">October 2026</option>
+              </select>
+            </div>
 
-                <div
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  marginBottom: 8,
+                  color: "#334155",
+                }}
+              >
+                Search calendar
+              </label>
+              <input
+                value={calendarSearch}
+                onChange={(e) => setCalendarSearch(e.target.value)}
+                placeholder="Search by vendor, cuisine, date, shift, or location"
+                style={{
+                  width: "100%",
+                  padding: "14px 16px",
+                  borderRadius: 14,
+                  border: "1px solid #cbd5e1",
+                  fontSize: 16,
+                  outline: "none",
+                }}
+              />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+              gap: 10,
+            }}
+          >
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div
+                key={day}
+                style={{
+                  textAlign: "center",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: "#64748b",
+                  padding: "8px 4px",
+                }}
+              >
+                {day}
+              </div>
+            ))}
+
+            {monthDates.map((dateCell, index) => {
+              if (!dateCell) {
+                return (
+                  <div
+                    key={`empty-${index}`}
+                    style={{
+                      minHeight: 110,
+                      borderRadius: 18,
+                      background: "transparent",
+                    }}
+                  />
+                );
+              }
+
+              const dayNumber = Number(dateCell.split("-")[2]);
+              const hasApprovedBooking = datesWithApprovedBookings.has(dateCell);
+              const isSelected = selectedDate === dateCell;
+
+              return (
+                <button
+                  key={dateCell}
+                  type="button"
+                  onClick={() => setSelectedDate(dateCell)}
                   style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#64748b",
+                    minHeight: 110,
+                    borderRadius: 18,
+                    border: isSelected
+                      ? "2px solid #2563eb"
+                      : hasApprovedBooking
+                      ? "1px solid #bfdbfe"
+                      : "1px solid #e2e8f0",
+                    background: isSelected
+                      ? "#eff6ff"
+                      : hasApprovedBooking
+                      ? "#f8fbff"
+                      : "#ffffff",
+                    padding: 12,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(15,23,42,0.03)",
                   }}
                 >
-                  {group.items.length === 0
-                    ? "No vendors scheduled yet"
-                    : `${group.items.length} vendor${group.items.length === 1 ? "" : "s"}`}
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {dayNumber}
+                  </div>
+
+                  {hasApprovedBooking ? (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#2563eb",
+                      }}
+                    >
+                      Vendors scheduled
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#94a3b8",
+                      }}
+                    >
+                      No vendors yet
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 24,
+            padding: 22,
+            boxShadow: "0 10px 30px rgba(15,23,42,0.05)",
+          }}
+        >
+          <div style={{ marginBottom: 18 }}>
+            <div
+              style={{
+                fontSize: 28,
+                fontWeight: 800,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {selectedDate ? selectedDateDisplay : "Choose a Date"}
+            </div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 15,
+                color: "#64748b",
+              }}
+            >
+              {selectedDate
+                ? "Approved vendors scheduled for this date."
+                : "Click a date on the calendar to view scheduled vendors."}
+            </div>
+          </div>
+
+          {!selectedDate ? (
+            <div
+              style={{
+                border: "1px dashed #cbd5e1",
+                borderRadius: 18,
+                padding: 24,
+                textAlign: "center",
+                color: "#64748b",
+                background: "#f8fafc",
+              }}
+            >
+              Select a date above to view the food truck schedule.
+            </div>
+          ) : selectedDateSlots.length === 0 ? (
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 18,
+                padding: 20,
+                background: "#f8fafc",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>Available</div>
+                <div style={{ marginTop: 6, fontSize: 14, color: "#64748b" }}>
+                  No approved vendors are listed for this date yet.
                 </div>
               </div>
 
-              {group.items.length === 0 ? (
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: "#0f172a",
+                }}
+              >
+                Schedule pending
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {selectedDateSlots.map((event) => (
                 <div
+                  key={event.id}
                   style={{
                     border: "1px solid #e2e8f0",
                     borderRadius: 18,
                     padding: 18,
-                    background: "#f8fafc",
+                    background: "#fcfdff",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    gap: 16,
+                    gap: 18,
                     flexWrap: "wrap",
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 18, fontWeight: 800 }}>Available</div>
-                    <div style={{ marginTop: 6, fontSize: 14, color: "#64748b" }}>
-                      No approved vendors are listed for this date yet.
+                    <div style={{ fontSize: 20, fontWeight: 800 }}>
+                      {event.truck}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 8,
+                        marginTop: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 999,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          fontSize: 14,
+                          color: "#475569",
+                        }}
+                      >
+                        {event.cuisine}
+                      </span>
+                      <span
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 999,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          fontSize: 14,
+                          color: "#475569",
+                        }}
+                      >
+                        {event.slotLabel}
+                      </span>
+                      <span
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 999,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          fontSize: 14,
+                          color: "#475569",
+                        }}
+                      >
+                        {event.location}
+                      </span>
                     </div>
                   </div>
 
                   <div
                     style={{
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: 700,
                       color: "#0f172a",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    Schedule pending
+                    {event.displayTime}
                   </div>
                 </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {group.items.map((event) => (
-                    <div
-                      key={event.id}
-                      style={{
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 18,
-                        padding: 18,
-                        background: "#fcfdff",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 18,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 20, fontWeight: 800 }}>
-                          {event.truck}
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 8,
-                            marginTop: 8,
-                          }}
-                        >
-                          <span
-                            style={{
-                              padding: "6px 10px",
-                              borderRadius: 999,
-                              background: "#f8fafc",
-                              border: "1px solid #e2e8f0",
-                              fontSize: 14,
-                              color: "#475569",
-                            }}
-                          >
-                            {event.cuisine}
-                          </span>
-                          <span
-                            style={{
-                              padding: "6px 10px",
-                              borderRadius: 999,
-                              background: "#f8fafc",
-                              border: "1px solid #e2e8f0",
-                              fontSize: 14,
-                              color: "#475569",
-                            }}
-                          >
-                            {event.slotLabel}
-                          </span>
-                          <span
-                            style={{
-                              padding: "6px 10px",
-                              borderRadius: 999,
-                              background: "#f8fafc",
-                              border: "1px solid #e2e8f0",
-                              fontSize: 14,
-                              color: "#475569",
-                            }}
-                          >
-                            {event.location}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 700,
-                          color: "#0f172a",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {event.displayTime}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          ))}
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </main>
