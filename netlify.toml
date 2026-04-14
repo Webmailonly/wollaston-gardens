@@ -3,7 +3,8 @@
   [headers.values]
     X-Frame-Options = "ALLOWALL"
     Content-Security-Policy = "frame-ancestors 'self' https://www.thewollastongardens.com https://thewollastongardens.com;"
-    [[redirects]]
+
+[[redirects]]
   from = "/"
   to = "/sponsors"
   status = 200
