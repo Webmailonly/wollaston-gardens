@@ -133,28 +133,63 @@ function buildMonthGrid(dateString) {
   return cells;
 }
 
-async function loadState() {
+async function loadBookings() {
   try {
     const response = await fetch("/.netlify/functions/bookings-get");
     const data = await response.json();
-    return data?.slots ? { slots: data.slots } : null;
+    return data?.slots ? data.slots : [];
   } catch {
-    return null;
+    return [];
   }
+}
+
+async function loadSponsors() {
+  try {
+    const response = await fetch("/.netlify/functions/sponsors-get");
+    const data = await response.json();
+    return data?.sponsors || [];
+  } catch {
+    return [];
+  }
+}
+
+function getSponsorsForDate(date, sponsors) {
+  const month = date.slice(0, 7);
+
+  return sponsors.filter((sponsor) => {
+    if (sponsor.status !== "paid") return false;
+
+    if (sponsor.tierId === "season") return true;
+    if (sponsor.tierId === "monthly" && sponsor.month === month) return true;
+    if (
+      sponsor.tierId === "weekend" &&
+      sponsor.weekendStart &&
+      sponsor.weekendEnd &&
+      date >= sponsor.weekendStart &&
+      date <= sponsor.weekendEnd
+    ) {
+      return true;
+    }
+
+    return false;
+  });
 }
 
 export default function CalendarPage() {
   const [slots, setSlots] = useState([]);
+  const [sponsors, setSponsors] = useState([]);
   const [calendarSearch, setCalendarSearch] = useState("");
   const [month, setMonth] = useState("2026-05");
   const [selectedDate, setSelectedDate] = useState("");
 
   useEffect(() => {
     (async () => {
-      const saved = await loadState();
-      if (saved?.slots) {
-        setSlots(saved.slots);
-      }
+      const [loadedSlots, loadedSponsors] = await Promise.all([
+        loadBookings(),
+        loadSponsors(),
+      ]);
+      setSlots(loadedSlots);
+      setSponsors(loadedSponsors);
     })();
   }, []);
 
@@ -197,6 +232,11 @@ export default function CalendarPage() {
     const [year, monthNum, day] = selectedDate.split("-").map(Number);
     return `${getMonthName(monthNum - 1)} ${day}, ${year}`;
   }, [selectedDate]);
+
+  const selectedDateSponsors = useMemo(() => {
+    if (!selectedDate) return [];
+    return getSponsorsForDate(selectedDate, sponsors);
+  }, [selectedDate, sponsors]);
 
   return (
     <main
@@ -361,6 +401,8 @@ export default function CalendarPage() {
 
               const hasApprovedBooking = datesWithApprovedBookings.has(dateCell);
               const isSelected = selectedDate === dateCell;
+              const dateSponsors = getSponsorsForDate(dateCell, sponsors);
+              const hasSponsor = dateSponsors.length > 0;
 
               return (
                 <button
@@ -369,20 +411,20 @@ export default function CalendarPage() {
                   onClick={() => !isClosedDay && setSelectedDate(dateCell)}
                   disabled={isClosedDay}
                   style={{
-                    minHeight: 110,
+                    minHeight: 130,
                     borderRadius: 18,
                     border: isSelected
                       ? "2px solid #2563eb"
                       : isClosedDay
                       ? "1px solid #fecaca"
-                      : hasApprovedBooking
+                      : hasApprovedBooking || hasSponsor
                       ? "1px solid #bfdbfe"
                       : "1px solid #e2e8f0",
                     background: isSelected
                       ? "#eff6ff"
                       : isClosedDay
                       ? "#fef2f2"
-                      : hasApprovedBooking
+                      : hasApprovedBooking || hasSponsor
                       ? "#f8fbff"
                       : "#ffffff",
                     padding: 12,
@@ -434,6 +476,19 @@ export default function CalendarPage() {
                       No vendors yet
                     </div>
                   )}
+
+                  {!isClosedDay && hasSponsor ? (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: "#7c3aed",
+                      }}
+                    >
+                      Sponsored
+                    </div>
+                  ) : null}
                 </button>
               );
             })}
@@ -485,118 +540,176 @@ export default function CalendarPage() {
             >
               Select an open date above to view the food truck schedule.
             </div>
-          ) : selectedDateSlots.length === 0 ? (
-            <div
-              style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: 18,
-                padding: 20,
-                background: "#f8fafc",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 16,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>Available</div>
-                <div style={{ marginTop: 6, fontSize: 14, color: "#64748b" }}>
-                  No approved vendors are listed for this date yet.
-                </div>
-              </div>
-
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#0f172a",
-                }}
-              >
-                Schedule pending
-              </div>
-            </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {selectedDateSlots.map((event) => (
+            <>
+              {selectedDateSponsors.length > 0 ? (
                 <div
-                  key={event.id}
+                  style={{
+                    marginBottom: 18,
+                    border: "1px solid #e9d5ff",
+                    borderRadius: 18,
+                    padding: 18,
+                    background: "#faf5ff",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 800,
+                      color: "#6d28d9",
+                      marginBottom: 10,
+                    }}
+                  >
+                    Sponsors
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {selectedDateSponsors.map((sponsor) => (
+                      <div key={sponsor.id}>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 800,
+                            color: "#0f172a",
+                          }}
+                        >
+                          {sponsor.companyName}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 4,
+                            fontSize: 14,
+                            color: "#64748b",
+                          }}
+                        >
+                          {sponsor.tierLabel}
+                          {sponsor.tierId === "monthly" && sponsor.month
+                            ? ` • ${sponsor.month}`
+                            : ""}
+                          {sponsor.tierId === "weekend" && sponsor.weekendLabel
+                            ? ` • ${sponsor.weekendLabel}`
+                            : ""}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {selectedDateSlots.length === 0 ? (
+                <div
                   style={{
                     border: "1px solid #e2e8f0",
                     borderRadius: 18,
-                    padding: 18,
-                    background: "#fcfdff",
+                    padding: 20,
+                    background: "#f8fafc",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    gap: 18,
+                    gap: 16,
                     flexWrap: "wrap",
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 20, fontWeight: 800 }}>
-                      {event.truck}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 8,
-                        marginTop: 8,
-                      }}
-                    >
-                      <span
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 999,
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          fontSize: 14,
-                          color: "#475569",
-                        }}
-                      >
-                        {event.cuisine}
-                      </span>
-                      <span
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 999,
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          fontSize: 14,
-                          color: "#475569",
-                        }}
-                      >
-                        {event.slotLabel}
-                      </span>
-                      <span
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 999,
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          fontSize: 14,
-                          color: "#475569",
-                        }}
-                      >
-                        {event.location}
-                      </span>
+                    <div style={{ fontSize: 18, fontWeight: 800 }}>Available</div>
+                    <div style={{ marginTop: 6, fontSize: 14, color: "#64748b" }}>
+                      No approved vendors are listed for this date yet.
                     </div>
                   </div>
 
                   <div
                     style={{
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: 700,
                       color: "#0f172a",
-                      whiteSpace: "nowrap",
                     }}
                   >
-                    {event.displayTime}
+                    Schedule pending
                   </div>
                 </div>
-              ))}
-            </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {selectedDateSlots.map((event) => (
+                    <div
+                      key={event.id}
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 18,
+                        padding: 18,
+                        background: "#fcfdff",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 18,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 20, fontWeight: 800 }}>
+                          {event.truck}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 8,
+                            marginTop: 8,
+                          }}
+                        >
+                          <span
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 999,
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                              fontSize: 14,
+                              color: "#475569",
+                            }}
+                          >
+                            {event.cuisine}
+                          </span>
+                          <span
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 999,
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                              fontSize: 14,
+                              color: "#475569",
+                            }}
+                          >
+                            {event.slotLabel}
+                          </span>
+                          <span
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 999,
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                              fontSize: 14,
+                              color: "#475569",
+                            }}
+                          >
+                            {event.location}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          color: "#0f172a",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {event.displayTime}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
