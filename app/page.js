@@ -1449,72 +1449,7 @@ export default function Page() {
         </div>
       </section>
 
-      <section id="calendar" className="section section-light">
-        <div className="wrap">
-          <div className="calendar-section-head">
-            <div>
-              <h2>Seasonal Calendar</h2>
-              <p>
-                Browse approved vendors by date, cuisine, shift, and location.
-              </p>
-            </div>
-
-            <div className="search-wrap calendar-search-wide">
-              <label>Search calendar</label>
-              <input
-                value={calendarSearch}
-                onChange={(e) => setCalendarSearch(e.target.value)}
-                placeholder="Search by vendor, cuisine, shift, date, or location"
-              />
-            </div>
-          </div>
-
-          <div className="public-date-groups">
-            {groupedPublicCalendar.map((group) => (
-              <div key={group.date} className="public-date-group">
-                <div className="public-date-header">
-                  <div className="public-date-title">{group.displayDate}</div>
-                  <div className="public-date-count">
-                    {group.items.length === 0
-                      ? "No bookings yet"
-                      : `${group.items.length} vendor${group.items.length === 1 ? "" : "s"}`}
-                  </div>
-                </div>
-
-                <div className="public-date-items">
-                  {group.items.length === 0 ? (
-                    <div className="public-event-card">
-                      <div className="public-event-main">
-                        <div className="public-event-name">Available</div>
-                        <div className="public-event-meta">
-                          <span>Schedule open</span>
-                          <span>Check booking portal</span>
-                        </div>
-                      </div>
-                      <div className="public-event-time">No approved vendors yet</div>
-                    </div>
-                  ) : (
-                    group.items.map((event) => (
-                      <div key={event.id} className="public-event-card">
-                        <div className="public-event-main">
-                          <div className="public-event-name">{event.truck}</div>
-                          <div className="public-event-meta">
-                            <span>{event.cuisine}</span>
-                            <span>{event.slotLabel}</span>
-                            <span>{event.location}</span>
-                          </div>
-                        </div>
-                        <div className="public-event-time">{event.displayTime}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
+     
       <section id="admin" className="section">
         <div className="wrap two-col">
           {!isAdmin ? (
