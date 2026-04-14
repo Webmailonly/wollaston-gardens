@@ -8,3 +8,4 @@
   from = "/"
   to = "/sponsors"
   status = 200
+  conditions = {Host = ["sponsors.thewollastongardens.com"]}
