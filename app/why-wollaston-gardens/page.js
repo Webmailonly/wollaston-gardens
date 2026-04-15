@@ -63,8 +63,7 @@ export default function WhyWollastonGardensPage() {
       <section
         style={{
           padding: "64px 24px 40px",
-          background:
-            "linear-gradient(180deg, rgba(8,10,14,0.92) 0%, rgba(8,10,14,0.96) 100%), url('/logo.png') center/contain no-repeat",
+          background: "#0b0d10",
           borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}
       >
@@ -164,7 +163,7 @@ export default function WhyWollastonGardensPage() {
                 border: "1px solid rgba(255,255,255,0.08)",
                 minHeight: 520,
                 background:
-                  "linear-gradient(180deg, rgba(10,12,16,0.15), rgba(10,12,16,0.45)), url('https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat",
+                  "linear-gradient(180deg, rgba(10,12,16,0.15), rgba(10,12,16,0.45)), url('/why/wg-photo-page-1.jpeg') center/cover no-repeat",
                 position: "relative",
               }}
             >
@@ -368,7 +367,13 @@ export default function WhyWollastonGardensPage() {
             </div>
           </div>
 
-          <div style={lightPanel}>
+          <div
+            style={{
+              ...lightPanel,
+              background:
+                "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(248,250,252,0.96)), url('/why/wg-photo-page-13.jpeg') center/cover no-repeat",
+            }}
+          >
             <div style={sectionEyebrowDark}>Vendor Requirements</div>
             <h2 style={sectionTitleDark}>What participating vendors need</h2>
             <div style={pillGridLight}>
@@ -440,7 +445,7 @@ export default function WhyWollastonGardensPage() {
                 style={{
                   minHeight: 420,
                   background:
-                    "linear-gradient(180deg, rgba(10,12,16,0.18), rgba(10,12,16,0.52)), url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat",
+                    "linear-gradient(180deg, rgba(10,12,16,0.18), rgba(10,12,16,0.52)), url('/why/wg-photo-page-14.jpeg') center/cover no-repeat",
                 }}
               />
             </div>
