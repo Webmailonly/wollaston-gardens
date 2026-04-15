@@ -1,59 +1,57 @@
-"use client";
-
-const BENEFITS = [
-  {
-    title: "Prime Location",
-    text: "Located in downtown Wollaston just steps from the MBTA Red Line and Hancock Street, with easy access from Boston and the South Shore.",
-  },
-  {
-    title: "Built-In Foot Traffic",
-    text: "Over 7,800 residents live within a 15-minute walk, plus steady commuter traffic from Wollaston Station and nearby neighborhood activity.",
-  },
-  {
-    title: "Marketing Support",
-    text: "Professionally branded and promoted venue with social media exposure and strong local visibility.",
-  },
-  {
-    title: "Community Events",
-    text: "Live music, food festivals, family days, and seasonal programming create repeat visits and high-energy weekends.",
-  },
-  {
-    title: "Flexible Scheduling",
-    text: "Choose your preferred dates and build your season around your schedule.",
-  },
-  {
-    title: "Growth Potential",
-    text: "Introduce your business to a new audience and grow brand recognition in Quincy and the South Shore.",
-  },
-];
-
-const REQUIREMENTS = [
-  "Valid permits",
-  "Liability insurance",
-  "Food safety certification",
-  "Equipment standards",
-  "Menu variety",
-  "Availability commitment",
-  "Professional presentation",
-];
-
-const PROGRAMMING = [
-  "Opening weekend",
-  "Food festivals",
-  "Live music nights",
-  "Family days",
-  "Cultural celebrations",
-  "Seasonal specials",
-  "Closing celebration",
-];
-
-const MIX = [
-  "2–3 food trucks with diverse cuisines",
-  "1–2 beverage vendors / reputable brewers",
-  "1–2 dessert or sweet treat vendors",
-];
-
 export default function WhyWollastonGardensPage() {
+  const benefits = [
+    {
+      title: "Prime Location",
+      text: "Located in downtown Wollaston just steps from the MBTA Red Line and Hancock Street, with easy access from Boston and the South Shore.",
+    },
+    {
+      title: "Built-In Foot Traffic",
+      text: "Over 7,800 residents live within a 15-minute walk, plus steady commuter traffic from Wollaston Station and nearby neighborhood activity.",
+    },
+    {
+      title: "Marketing Support",
+      text: "Professionally branded and promoted venue with strong local visibility and seasonal exposure.",
+    },
+    {
+      title: "Community Events",
+      text: "Live music, food festivals, family days, and seasonal programming create repeat visits and a high-energy atmosphere.",
+    },
+    {
+      title: "Flexible Scheduling",
+      text: "Choose your preferred dates and build your season around your operating schedule.",
+    },
+    {
+      title: "Growth Potential",
+      text: "Introduce your business to a new audience and grow brand recognition in Quincy and the South Shore.",
+    },
+  ];
+
+  const programming = [
+    "Opening Weekend",
+    "Food Festivals",
+    "Live Music Nights",
+    "Family Days",
+    "Cultural Celebrations",
+    "Seasonal Specials",
+    "Closing Celebration",
+  ];
+
+  const requirements = [
+    "Valid Permits",
+    "Liability Insurance",
+    "Food Safety Certification",
+    "Equipment Standards",
+    "Menu Variety",
+    "Availability Commitment",
+    "Professional Presentation",
+  ];
+
+  const mix = [
+    "2–3 food trucks with diverse cuisines",
+    "1–2 beverage vendors / reputable brewers",
+    "1–2 dessert or sweet treat vendors",
+  ];
+
   return (
     <main
       style={{
@@ -114,7 +112,14 @@ export default function WhyWollastonGardensPage() {
             designed to help businesses grow.
           </p>
 
-          <div style={{ marginTop: 28, display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div
+            style={{
+              marginTop: 28,
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
             <a href="/#booking" style={primaryButton}>
               Apply to Book
             </a>
@@ -129,13 +134,15 @@ export default function WhyWollastonGardensPage() {
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={sectionCard}>
             <div style={sectionEyebrow}>The Opportunity</div>
-            <h2 style={sectionTitle}>A high-visibility outdoor market in a growing Quincy location</h2>
+            <h2 style={sectionTitle}>
+              A high-visibility outdoor market in a growing Quincy location
+            </h2>
             <p style={sectionText}>
-              Wollaston Gardens is positioned in the heart of downtown Wollaston,
-              steps from the MBTA Red Line and surrounded by growing residential
-              density. The concept combines food trucks, community gathering,
-              evening entertainment, and consistent seasonal programming to create
-              an experience that stands out in Quincy. :contentReference[oaicite:1]{index=1}
+              Wollaston Gardens is positioned in the heart of downtown
+              Wollaston, steps from the MBTA Red Line and surrounded by growing
+              residential density. The concept combines food trucks, community
+              gathering, evening entertainment, and consistent seasonal
+              programming to create an experience that stands out in Quincy.
             </p>
           </div>
         </div>
@@ -151,7 +158,7 @@ export default function WhyWollastonGardensPage() {
             gap: 18,
           }}
         >
-          {BENEFITS.map((item) => (
+          {benefits.map((item) => (
             <div key={item.title} style={benefitCard}>
               <div style={benefitTitle}>{item.title}</div>
               <div style={benefitText}>{item.text}</div>
@@ -174,7 +181,13 @@ export default function WhyWollastonGardensPage() {
             <div style={sectionEyebrow}>Operating Hours</div>
             <h2 style={sectionTitle}>Evening and weekend focused schedule</h2>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 18,
+              }}
+            >
               <div style={infoBox}>
                 <div style={infoTitle}>Summer Season</div>
                 <div style={infoBody}>May 15 – August 31, 2026</div>
@@ -197,9 +210,9 @@ export default function WhyWollastonGardensPage() {
 
           <div style={sectionCard}>
             <div style={sectionEyebrow}>Event Programming</div>
-            <h2 style={sectionTitle}>Reasons for customers to keep coming back</h2>
+            <h2 style={sectionTitle}>Reasons customers keep coming back</h2>
             <div style={pillGrid}>
-              {PROGRAMMING.map((item) => (
+              {programming.map((item) => (
                 <div key={item} style={pill}>
                   {item}
                 </div>
@@ -221,9 +234,11 @@ export default function WhyWollastonGardensPage() {
         >
           <div style={sectionCard}>
             <div style={sectionEyebrow}>Vendor Mix Strategy</div>
-            <h2 style={sectionTitle}>A curated mix creates better traffic and better sales</h2>
+            <h2 style={sectionTitle}>
+              A curated mix creates better traffic and stronger sales
+            </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {MIX.map((item) => (
+              {mix.map((item) => (
                 <div key={item} style={listRow}>
                   {item}
                 </div>
@@ -235,7 +250,7 @@ export default function WhyWollastonGardensPage() {
             <div style={sectionEyebrow}>Vendor Requirements</div>
             <h2 style={sectionTitle}>What vendors need to participate</h2>
             <div style={pillGrid}>
-              {REQUIREMENTS.map((item) => (
+              {requirements.map((item) => (
                 <div key={item} style={pill}>
                   {item}
                 </div>
@@ -249,7 +264,9 @@ export default function WhyWollastonGardensPage() {
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={sectionCard}>
             <div style={sectionEyebrow}>Vendor Commitment</div>
-            <h2 style={sectionTitle}>Structured, but flexible enough to grow with your business</h2>
+            <h2 style={sectionTitle}>
+              Structured, but flexible enough to grow with your business
+            </h2>
 
             <div
               style={{
@@ -261,16 +278,17 @@ export default function WhyWollastonGardensPage() {
               <div style={infoBox}>
                 <div style={infoTitle}>Season Commitment</div>
                 <div style={infoBody}>
-                  Full season runs May through October 2026. Vendors are expected
-                  to participate consistently, with preferred dates selected in advance.
+                  Full season runs May through October 2026. Vendors are
+                  expected to participate consistently, with preferred dates
+                  selected in advance.
                 </div>
               </div>
 
               <div style={infoBox}>
                 <div style={infoTitle}>Scheduling Flexibility</div>
                 <div style={infoBody}>
-                  Flexible scheduling supports advance planning and helps vendors
-                  choose dates that fit their operating needs.
+                  Flexible scheduling supports advance planning and helps
+                  vendors choose dates that fit their operating needs.
                 </div>
               </div>
 
@@ -303,7 +321,9 @@ export default function WhyWollastonGardensPage() {
               color: "#ffffff",
             }}
           >
-            <div style={{ ...sectionEyebrow, color: "#cbd5e1" }}>Join the 2026 Season</div>
+            <div style={{ ...sectionEyebrow, color: "#cbd5e1" }}>
+              Join the 2026 Season
+            </div>
             <h2 style={{ ...sectionTitle, color: "#ffffff" }}>
               Ready to bring your truck to Wollaston Gardens?
             </h2>
@@ -313,7 +333,14 @@ export default function WhyWollastonGardensPage() {
               chance to apply.
             </p>
 
-            <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <div
+              style={{
+                marginTop: 24,
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
               <a href="/#booking" style={primaryButton}>
                 Apply Now
               </a>
@@ -330,8 +357,10 @@ export default function WhyWollastonGardensPage() {
                 lineHeight: 1.8,
               }}
             >
-              info@thewollastongardens.com<br />
-              (617) 903-0736<br />
+              info@thewollastongardens.com
+              <br />
+              (617) 903-0736
+              <br />
               18 Beale St, Quincy, MA 02170
             </div>
           </div>
