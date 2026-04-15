@@ -235,45 +235,56 @@ export default function WhyWollastonGardensPage() {
         </div>
       </section>
 
-      <section style={{ padding: "32px 24px" }}>
-        <div
-          style={{
-            maxWidth: 1180,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "0.95fr 1.05fr",
-            gap: 24,
-          }}
-        >
-          <div style={darkCard}>
-            <div style={eyebrow}>Why It Works</div>
-            <h2 style={lightTitle}>
-              A strong local venue with recurring reasons for people to show up
-            </h2>
-            <p style={lightText}>
-              Wollaston Gardens combines location, programming, and seasonal
-              consistency into a sponsorship opportunity that feels local,
-              visible, and easy to understand. Sponsors are not just buying an ad.
-              They’re becoming part of the venue experience.
-            </p>
-          </div>
+      <section style={{ padding: "60px 24px", textAlign: "center" }}>
+  <div style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div style={eyebrow}>Why It Works</div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 18,
-            }}
-          >
-            {audiencePoints.map((point) => (
-              <div key={point} style={statCard}>
-                <div style={statNumber}>•</div>
-                <div style={statLabel}>{point}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+    <h2 style={{
+      fontSize: 42,
+      fontWeight: 900,
+      marginBottom: 16,
+      lineHeight: 1.2
+    }}>
+      A strong local venue with recurring reasons for people to show up
+    </h2>
+
+    <p style={{
+      fontSize: 18,
+      lineHeight: 1.7,
+      color: "rgba(255,255,255,0.75)"
+    }}>
+      Wollaston Gardens combines location, programming, and seasonal consistency into a sponsorship opportunity that feels local, visible, and easy to understand. Sponsors are not just buying an ad — they’re becoming part of the experience.
+    </p>
+  </div>
+
+  <div style={{
+    maxWidth: 1000,
+    margin: "40px auto 0",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: 16
+  }}>
+    <div style={statCard}>
+      <div style={eyebrow}>Location</div>
+      <div style={statLabel}>Downtown Wollaston near the MBTA Red Line</div>
+    </div>
+
+    <div style={statCard}>
+      <div style={eyebrow}>Traffic</div>
+      <div style={statLabel}>Evening and weekend audience flow</div>
+    </div>
+
+    <div style={statCard}>
+      <div style={eyebrow}>Experience</div>
+      <div style={statLabel}>Food trucks, live entertainment, community vibe</div>
+    </div>
+
+    <div style={statCard}>
+      <div style={eyebrow}>Seasonality</div>
+      <div style={statLabel}>Recurring exposure summer through fall 2026</div>
+    </div>
+  </div>
+</section>
 
       <section style={{ padding: "8px 24px 32px" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto" }}>
@@ -314,55 +325,98 @@ export default function WhyWollastonGardensPage() {
                 "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(248,250,252,0.96)), url('/why/wg-photo-page-13.jpeg') center/cover no-repeat",
             }}
           >
-            <div style={sectionEyebrowDark}>Sponsorship Tiers</div>
-            <h2 style={sectionTitleDark}>Simple packages with clear value</h2>
+            <section style={{ padding: "60px 24px", textAlign: "center" }}>
+  <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+    <div style={eyebrow}>Sponsorship Tiers</div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr",
-                gap: 14,
-                marginTop: 18,
-              }}
-            >
-              {sponsorTiers.map((tier) => (
-                <div key={tier.title} style={tierCard}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "start",
-                      flexWrap: "wrap",
-                      marginBottom: 10,
-                    }}
-                  >
-                    <div style={tierTitle}>{tier.title}</div>
-                    <div style={tierPrice}>{tier.price}</div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {tier.items.map((item) => (
-                      <div key={item} style={tierItem}>
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+    <h2 style={{
+      fontSize: 42,
+      fontWeight: 900,
+      marginBottom: 30
+    }}>
+      Simple packages with clear value
+    </h2>
+
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+      gap: 20
+    }}>
+      {sponsorTiers.map((tier) => (
+        <div key={tier.title} style={{
+          background: "#ffffff",
+          color: "#0f172a",
+          borderRadius: 20,
+          padding: 22,
+          textAlign: "left"
+        }}>
+          <div style={{
+            fontWeight: 800,
+            fontSize: 18,
+            marginBottom: 6
+          }}>
+            {tier.title}
           </div>
 
-          <div style={darkCard}>
-            <div style={eyebrow}>What Sponsors Receive</div>
-            <h2 style={lightTitle}>On-site presence plus digital visibility</h2>
-            <div style={darkPillGrid}>
-              <div style={darkPill}>Calendar placement</div>
-              <div style={darkPill}>Social media mention</div>
-              <div style={darkPill}>On-site signage</div>
-              <div style={darkPill}>Fence wrap opportunity</div>
-              <div style={darkPill}>Beer coaster placements</div>
-              <div style={darkPill}>Seasonal package options</div>
+          <div style={{
+            fontWeight: 900,
+            fontSize: 20,
+            color: "#b45309",
+            marginBottom: 12
+          }}>
+            {tier.price}
+          </div>
+
+          {tier.items.map((item) => (
+            <div key={item} style={{
+              fontSize: 14,
+              marginBottom: 6
+            }}>
+              • {item}
             </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+          <section style={{ padding: "60px 24px", textAlign: "center" }}>
+  <div style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div style={eyebrow}>Sponsor Value</div>
+
+    <h2 style={{
+      fontSize: 42,
+      fontWeight: 900,
+      marginBottom: 20
+    }}>
+      On-site presence plus digital visibility
+    </h2>
+
+    <div style={{
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: 12
+    }}>
+      <div style={darkPill}>Calendar placement</div>
+      <div style={darkPill}>Social media mention</div>
+      <div style={darkPill}>On-site signage</div>
+      <div style={darkPill}>Fence wrap opportunity</div>
+      <div style={darkPill}>Beer coaster placements</div>
+      <div style={darkPill}>Seasonal packages</div>
+    </div>
+
+    <p style={{
+      marginTop: 20,
+      color: "rgba(255,255,255,0.75)",
+      fontSize: 16,
+      lineHeight: 1.7
+    }}>
+      Sponsorships are designed to deliver both physical presence at the venue and consistent digital exposure across the season.
+    </p>
+  </div>
+</section>
 
             <p style={{ ...lightText, marginTop: 20 }}>
               The opportunity is designed to work for both larger presenting
