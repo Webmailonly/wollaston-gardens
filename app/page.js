@@ -308,113 +308,116 @@ export default function WhyWollastonGardensPage() {
         </div>
       </section>
 
-      <section style={{ padding: "0 24px 32px" }}>
-        <div
-          style={{
-            maxWidth: 1180,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "1.05fr 0.95fr",
-            gap: 24,
-          }}
-        >
-          <div
-            style={{
-              ...lightPanel,
-              background:
-                "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(248,250,252,0.96)), url('/why/wg-photo-page-13.jpeg') center/cover no-repeat",
-            }}
-          >
-            <section style={{ padding: "60px 24px", textAlign: "center" }}>
-  <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-    <div style={eyebrow}>Sponsorship Tiers</div>
+     <section style={{ padding: "0 24px 32px" }}>
+  <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+    <div style={{ textAlign: "center", marginBottom: 34 }}>
+      <div style={eyebrow}>Sponsor Value</div>
+      <h2
+        style={{
+          fontSize: 42,
+          fontWeight: 900,
+          margin: "0 0 16px",
+          lineHeight: 1.15,
+          color: "#ffffff",
+          letterSpacing: "-0.03em",
+        }}
+      >
+        On-site presence plus
+        <br />
+        digital visibility
+      </h2>
 
-    <h2 style={{
-      fontSize: 42,
-      fontWeight: 900,
-      marginBottom: 30
-    }}>
-      Simple packages with clear value
-    </h2>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: 12,
+          marginTop: 18,
+        }}
+      >
+        <div style={darkPill}>Calendar placement</div>
+        <div style={darkPill}>Social media mention</div>
+        <div style={darkPill}>On-site signage</div>
+        <div style={darkPill}>Fence wrap opportunity</div>
+        <div style={darkPill}>Beer coaster placements</div>
+        <div style={darkPill}>Seasonal packages</div>
+      </div>
 
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-      gap: 20
-    }}>
-      {sponsorTiers.map((tier) => (
-        <div key={tier.title} style={{
-          background: "#ffffff",
-          color: "#0f172a",
-          borderRadius: 20,
-          padding: 22,
-          textAlign: "left"
-        }}>
-          <div style={{
-            fontWeight: 800,
-            fontSize: 18,
-            marginBottom: 6
-          }}>
-            {tier.title}
-          </div>
+      <p
+        style={{
+          margin: "22px auto 0",
+          maxWidth: 820,
+          fontSize: 17,
+          lineHeight: 1.75,
+          color: "rgba(255,255,255,0.78)",
+        }}
+      >
+        Sponsorships are designed to deliver both physical presence at the venue
+        and consistent digital exposure across the season.
+      </p>
 
-          <div style={{
-            fontWeight: 900,
-            fontSize: 20,
-            color: "#b45309",
-            marginBottom: 12
-          }}>
-            {tier.price}
-          </div>
+      <p
+        style={{
+          margin: "18px auto 0",
+          maxWidth: 820,
+          fontSize: 17,
+          lineHeight: 1.75,
+          color: "rgba(255,255,255,0.78)",
+        }}
+      >
+        The opportunity is designed to work for both larger presenting partners
+        and smaller businesses looking for a strong single-weekend presence.
+      </p>
+    </div>
 
-          {tier.items.map((item) => (
-            <div key={item} style={{
-              fontSize: 14,
-              marginBottom: 6
-            }}>
-              • {item}
+    <div
+      style={{
+        ...lightPanel,
+        background:
+          "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(248,250,252,0.96)), url('/why/wg-photo-page-13.jpeg') center/cover no-repeat",
+      }}
+    >
+      <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <div style={sectionEyebrowDark}>Sponsorship Tiers</div>
+        <h2 style={sectionTitleDark}>Simple packages with clear value</h2>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 18,
+          alignItems: "start",
+        }}
+      >
+        {sponsorTiers.map((tier) => (
+          <div key={tier.title} style={tierCard}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "start",
+                flexWrap: "wrap",
+                marginBottom: 10,
+              }}
+            >
+              <div style={tierTitle}>{tier.title}</div>
+              <div style={tierPrice}>{tier.price}</div>
             </div>
-          ))}
-        </div>
-      ))}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {tier.items.map((item) => (
+                <div key={item} style={tierItem}>
+                  • {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-</section>
-
-          <section style={{ padding: "60px 24px", textAlign: "center" }}>
-  <div style={{ maxWidth: 900, margin: "0 auto" }}>
-    <div style={eyebrow}>Sponsor Value</div>
-
-    <h2 style={{
-      fontSize: 42,
-      fontWeight: 900,
-      marginBottom: 20
-    }}>
-      On-site presence plus digital visibility
-    </h2>
-
-    <div style={{
-      display: "flex",
-      flexWrap: "wrap",
-      justifyContent: "center",
-      gap: 12
-    }}>
-      <div style={darkPill}>Calendar placement</div>
-      <div style={darkPill}>Social media mention</div>
-      <div style={darkPill}>On-site signage</div>
-      <div style={darkPill}>Fence wrap opportunity</div>
-      <div style={darkPill}>Beer coaster placements</div>
-      <div style={darkPill}>Seasonal packages</div>
-    </div>
-
-    <p style={{
-      marginTop: 20,
-      color: "rgba(255,255,255,0.75)",
-      fontSize: 16,
-      lineHeight: 1.7
-    }}>
-      Sponsorships are designed to deliver both physical presence at the venue and consistent digital exposure across the season.
-    </p>
   </div>
 </section>
 
