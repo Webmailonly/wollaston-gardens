@@ -2,7 +2,7 @@ export default function WhyWollastonGardensPage() {
   const sponsorTiers = [
     {
       title: "Season Sponsor",
-      price: "$3,500+",
+      price: "$3,500",
       items: [
         "Logo on calendar page",
         "Featured placement on fence wrap",
