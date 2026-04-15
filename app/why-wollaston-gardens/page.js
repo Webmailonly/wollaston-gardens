@@ -147,9 +147,9 @@ export default function WhyWollastonGardensPage() {
                   flexWrap: "wrap",
                 }}
               >
-                <a href="/#booking" style={primaryButton}>
-                  Apply to Book
-                </a>
+                <a href="https://sponsors.thewollastongardens.com" style={primaryButton}>
+  Become a Sponsor
+</a>
                 <a href="/calendar" style={secondaryButtonDark}>
                   View Public Calendar
                 </a>
@@ -417,9 +417,9 @@ export default function WhyWollastonGardensPage() {
                 </p>
 
                 <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <a href="/#booking" style={primaryButton}>
-                    Apply Now
-                  </a>
+                  <a href="https://sponsors.thewollastongardens.com" style={primaryButton}>
+  View Sponsorship Packages
+</a>
                   <a href="/calendar" style={secondaryButtonDark}>
                     View Calendar
                   </a>
