@@ -40,7 +40,7 @@ const TIERS = [
   {
     id: "season",
     title: "Tier 1 – Season Sponsor",
-    priceLabel: "$3,500+",
+    priceLabel: "$3,500",
     amountCents: 350000,
     bullets: [
       "Logo on calendar page",
