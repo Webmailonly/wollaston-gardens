@@ -1,682 +1,1735 @@
-export default function WhyWollastonGardensPage() {
-  const sponsorTiers = [
-    {
-      title: "Season Sponsor",
-      price: "$3,500",
-      items: [
-        "Logo on calendar page",
-        "Featured placement on fence wrap",
-        "Mention on all marketing and social media",
-        "Beer coasters for three weekends",
-        "Included in launch digital and print advertising",
-      ],
-    },
-    {
-      title: "Monthly Sponsor",
-      price: "$1,000",
-      items: [
-        "All month long",
-        "A-frame at entrance",
-        "Calendar placement plus social media thank you",
-        "Beer coasters for one weekend",
-      ],
-    },
-    {
-      title: "Single Weekend Sponsor",
-      price: "$500",
-      items: [
-        "4-day sponsorship",
-        "A-frame at entrance",
-        "Calendar placement plus social media thank you",
-      ],
-    },
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+const VENUE_NAME = "Wollaston Gardens";
+const ADMIN_EMAIL = "info@thewollastongardens.com";
+const ADMIN_PHONE = "617 903 0736";
+const DEPOSIT_METHOD = "Stripe";
+
+const LOCATIONS = [
+  "Location 1",
+  "Location 2",
+  "Location 3",
+  "Location 4",
+];
+
+const CUISINE_OPTIONS = [
+  "American",
+  "Brazilian",
+  "Chinese",
+  "Asian Fusion",
+  "Indian",
+  "Middle Eastern",
+  "Irish",
+  "German",
+  "French",
+  "Greek",
+  "Italian",
+  "Mexican",
+  "Jamaican",
+  "Caribbean",
+  "BBQ",
+  "Pizza",
+  "Pasta",
+  "Sushi",
+  "Dessert",
+  "Pastry",
+];
+
+const SCHEDULE_ROWS = [
+  ["2026-05-15", "Friday"],
+  ["2026-05-16", "Saturday"],
+  ["2026-05-17", "Sunday"],
+  ["2026-05-21", "Thursday"],
+  ["2026-05-22", "Friday"],
+  ["2026-05-23", "Saturday"],
+  ["2026-05-24", "Sunday"],
+  ["2026-05-28", "Thursday"],
+  ["2026-05-29", "Friday"],
+  ["2026-05-30", "Saturday"],
+  ["2026-05-31", "Sunday"],
+  ["2026-06-04", "Thursday"],
+  ["2026-06-05", "Friday"],
+  ["2026-06-06", "Saturday"],
+  ["2026-06-07", "Sunday"],
+  ["2026-06-11", "Thursday"],
+  ["2026-06-12", "Friday"],
+  ["2026-06-13", "Saturday"],
+  ["2026-06-14", "Sunday"],
+  ["2026-06-18", "Thursday"],
+  ["2026-06-19", "Friday"],
+  ["2026-06-20", "Saturday"],
+  ["2026-06-21", "Sunday"],
+  ["2026-06-25", "Thursday"],
+  ["2026-06-26", "Friday"],
+  ["2026-06-27", "Saturday"],
+  ["2026-06-28", "Sunday"],
+  ["2026-07-02", "Thursday"],
+  ["2026-07-03", "Friday"],
+  ["2026-07-04", "Saturday"],
+  ["2026-07-05", "Sunday"],
+  ["2026-07-09", "Thursday"],
+  ["2026-07-10", "Friday"],
+  ["2026-07-11", "Saturday"],
+  ["2026-07-12", "Sunday"],
+  ["2026-07-16", "Thursday"],
+  ["2026-07-17", "Friday"],
+  ["2026-07-18", "Saturday"],
+  ["2026-07-19", "Sunday"],
+  ["2026-07-23", "Thursday"],
+  ["2026-07-24", "Friday"],
+  ["2026-07-25", "Saturday"],
+  ["2026-07-26", "Sunday"],
+  ["2026-07-30", "Thursday"],
+  ["2026-07-31", "Friday"],
+  ["2026-08-01", "Saturday"],
+  ["2026-08-02", "Sunday"],
+  ["2026-08-06", "Thursday"],
+  ["2026-08-07", "Friday"],
+  ["2026-08-08", "Saturday"],
+  ["2026-08-09", "Sunday"],
+  ["2026-08-13", "Thursday"],
+  ["2026-08-14", "Friday"],
+  ["2026-08-15", "Saturday"],
+  ["2026-08-16", "Sunday"],
+  ["2026-08-20", "Thursday"],
+  ["2026-08-21", "Friday"],
+  ["2026-08-22", "Saturday"],
+  ["2026-08-23", "Sunday"],
+  ["2026-08-27", "Thursday"],
+  ["2026-08-28", "Friday"],
+  ["2026-08-29", "Saturday"],
+  ["2026-08-30", "Sunday"],
+  ["2026-09-03", "Thursday"],
+  ["2026-09-04", "Friday"],
+  ["2026-09-05", "Saturday"],
+  ["2026-09-06", "Sunday"],
+  ["2026-09-10", "Thursday"],
+  ["2026-09-11", "Friday"],
+  ["2026-09-12", "Saturday"],
+  ["2026-09-13", "Sunday"],
+  ["2026-09-17", "Thursday"],
+  ["2026-09-18", "Friday"],
+  ["2026-09-19", "Saturday"],
+  ["2026-09-20", "Sunday"],
+  ["2026-09-24", "Thursday"],
+  ["2026-09-25", "Friday"],
+  ["2026-09-26", "Saturday"],
+  ["2026-09-27", "Sunday"],
+  ["2026-10-01", "Thursday"],
+  ["2026-10-02", "Friday"],
+  ["2026-10-03", "Saturday"],
+  ["2026-10-04", "Sunday"],
+  ["2026-10-08", "Thursday"],
+  ["2026-10-09", "Friday"],
+  ["2026-10-10", "Saturday"],
+  ["2026-10-11", "Sunday"],
+  ["2026-10-15", "Thursday"],
+  ["2026-10-16", "Friday"],
+  ["2026-10-17", "Saturday"],
+];
+
+const emptyForm = {
+  truck: "",
+  contactName: "",
+  email: "",
+  phone: "",
+  cuisine: "",
+  location: "",
+  requirements: "",
+  slotId: "",
+  acceptedContract: false,
+  insuranceAcknowledged: false,
+};
+
+async function saveState(state) {
+  try {
+    await fetch("/.netlify/functions/bookings-save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(state),
+    });
+  } catch (error) {
+    console.error("Save failed", error);
+  }
+}
+
+async function loadState() {
+  try {
+    const response = await fetch("/.netlify/functions/bookings-get");
+    const data = await response.json();
+    return data?.slots ? { slots: data.slots } : null;
+  } catch {
+    return null;
+  }
+}
+
+function getMonthName(monthIndex) {
+  return [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ][monthIndex];
+}
+
+function getSeasonWindow(date) {
+  if (date >= "2026-05-15" && date <= "2026-06-30") return "may-june";
+  if (date >= "2026-07-01" && date < "2026-08-15") return "july-aug14";
+  return "aug15-oct15";
+}
+
+function getPricing(slot) {
+  if (slot.date === "2026-10-03" || slot.date === "2026-10-04") {
+    return "$250 + 10% of sales";
+  }
+
+  const season = getSeasonWindow(slot.date);
+
+  if (slot.slotKind === "full-day") {
+    return season === "july-aug14"
+      ? "$175 + 10% of sales"
+      : "$225 + 10% of sales";
+  }
+
+  if (slot.durationHours === 3) {
+    return season === "july-aug14"
+      ? "$125 + 12% of sales"
+      : "$150 + 10% of sales";
+  }
+
+  if (slot.durationHours === 4 || slot.durationHours === 5) {
+    return season === "july-aug14"
+      ? "$125 + 10% of sales"
+      : "$175 + 10% of sales";
+  }
+
+  return "$150 + 10% of sales";
+}
+
+function getDepositText(slot) {
+  return `50% deposit due after approval via ${DEPOSIT_METHOD}. Rate: ${getPricing(slot)}`;
+}
+
+function getDepositAmountCents(slot) {
+  const price = getPricing(slot);
+  const match = price.match(/\$(\d+)/);
+  if (!match) return 10000;
+  const fullAmount = Number(match[1]);
+  return Math.round(fullAmount * 100 * 0.5);
+}
+
+function createSlotsFromSchedule() {
+  let id = 1;
+  const slots = [];
+
+  for (const [date, day] of SCHEDULE_ROWS) {
+    const [year, month, dayNumber] = date.split("-").map(Number);
+    const displayDate = `${getMonthName(month - 1)} ${dayNumber}, ${year}`;
+
+    for (const locationName of LOCATIONS) {
+      const base = {
+        date,
+        displayDate,
+        day,
+        location: locationName,
+        status: "open",
+        venueArea: `${VENUE_NAME} - ${locationName}`,
+        truck: null,
+        cuisine: null,
+        contactName: null,
+        email: null,
+        phone: null,
+        requirements: null,
+        depositRequested: false,
+        depositReceived: false,
+        insuranceReceived: false,
+        cancelReason: "",
+        adminNotes: "",
+        notificationState: "not-sent",
+      };
+
+      const pushSlot = (extra) => {
+        slots.push({
+          ...base,
+          id: id++,
+          ...extra,
+        });
+      };
+
+      if (day === "Thursday" || day === "Friday") {
+        pushSlot({
+          startTime: "16:00",
+          endTime: "21:00",
+          displayTime: "4:00 PM - 9:00 PM",
+          category: "Dinner",
+          slotKind: "standard",
+          slotLabel: "Dinner Shift",
+          durationHours: 5,
+        });
+        continue;
+      }
+
+      if (day === "Saturday") {
+        pushSlot({
+          startTime: "12:00",
+          endTime: "15:00",
+          displayTime: "12:00 PM - 3:00 PM",
+          category: "Lunch",
+          slotKind: "partial",
+          slotLabel: "Lunch Shift",
+          durationHours: 3,
+        });
+
+        pushSlot({
+          startTime: "16:00",
+          endTime: "21:00",
+          displayTime: "4:00 PM - 9:00 PM",
+          category: "Dinner",
+          slotKind: "partial",
+          slotLabel: "Dinner Shift",
+          durationHours: 5,
+        });
+
+        pushSlot({
+          startTime: "12:00",
+          endTime: "21:00",
+          displayTime: "12:00 PM - 9:00 PM",
+          category: "Full Day",
+          slotKind: "full-day",
+          slotLabel: "Full Day",
+          durationHours: 9,
+          priorityTier: "priority",
+        });
+
+        continue;
+      }
+
+      if (day === "Sunday") {
+        pushSlot({
+          startTime: "12:00",
+          endTime: "15:00",
+          displayTime: "12:00 PM - 3:00 PM",
+          category: "Lunch",
+          slotKind: "partial",
+          slotLabel: "Midday Shift",
+          durationHours: 3,
+        });
+
+        pushSlot({
+          startTime: "16:00",
+          endTime: "19:00",
+          displayTime: "4:00 PM - 7:00 PM",
+          category: "Dinner",
+          slotKind: "partial",
+          slotLabel: "Evening Shift",
+          durationHours: 3,
+        });
+
+        pushSlot({
+          startTime: "12:00",
+          endTime: "19:00",
+          displayTime: "12:00 PM - 7:00 PM",
+          category: "Full Day",
+          slotKind: "full-day",
+          slotLabel: "Full Day",
+          durationHours: 7,
+          priorityTier: "priority",
+        });
+      }
+    }
+  }
+
+  return slots;
+}
+
+function getRelatedSlotIds(slot, allSlots) {
+  if (!slot || !["Saturday", "Sunday"].includes(slot.day)) {
+    return slot ? [slot.id] : [];
+  }
+
+  return allSlots
+    .filter(
+      (candidate) =>
+        candidate.date === slot.date &&
+        candidate.location === slot.location
+    )
+    .map((candidate) => candidate.id);
+}
+
+function isSlotBlockedByDateConflict(slot, allSlots) {
+  const relatedIds = getRelatedSlotIds(slot, allSlots);
+
+  return allSlots.some(
+    (candidate) =>
+      relatedIds.includes(candidate.id) &&
+      candidate.id !== slot.id &&
+      ["pending", "approved"].includes(candidate.status)
+  );
+}
+
+function escapeICS(value = "") {
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+
+function formatICSDateTime(dateStr, timeStr) {
+  const [year, month, day] = dateStr.split("-");
+  const [hour, minute] = timeStr.split(":");
+  return `${year}${month}${day}T${hour}${minute}00`;
+}
+
+function buildICSFromApprovedSlots(events) {
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Wollaston Gardens//Seasonal Calendar//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
   ];
 
-  const highlights = [
-    {
-      title: "Prime Quincy Visibility",
-      text: "Position your brand in a destination setting steps from Wollaston Station and surrounded by local foot traffic.",
-    },
-    {
-      title: "Recurring Seasonal Exposure",
-      text: "Sponsors benefit from repeat impressions across the full summer-fall operating season, not just one isolated event.",
-    },
-    {
-      title: "On-Site + Digital Presence",
-      text: "Your sponsorship works both on the ground and online through the public calendar, venue marketing, and social content.",
-    },
-    {
-      title: "Community-Oriented Brand Fit",
-      text: "Align your brand with local gathering, food culture, entertainment, and a memorable Quincy experience.",
-    },
-  ];
+  for (const event of events) {
+    const uid = `booking-${event.id}@wollastongardens.com`;
+    const dtstamp = new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}Z$/, "Z");
 
-  const audiencePoints = [
-    "Downtown Wollaston location near the MBTA Red Line",
-    "Evening and weekend traffic pattern",
-    "Food trucks, live entertainment, and community atmosphere",
-    "Season-long visibility from summer through fall 2026",
-  ];
+    const dtstart = formatICSDateTime(event.date, event.startTime);
+    const dtend = formatICSDateTime(event.date, event.endTime);
+
+    const summary = `${event.truck || "Food Truck"} - ${event.slotLabel || "Shift"}`;
+    const description = [
+      `Vendor: ${event.truck || ""}`,
+      `Cuisine: ${event.cuisine || ""}`,
+      `Location: ${event.location || ""}`,
+      `Shift: ${event.displayTime || ""}`,
+      `Venue: Wollaston Gardens`,
+    ].join("\\n");
+
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:${escapeICS(uid)}`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART:${dtstart}`,
+      `DTEND:${dtend}`,
+      `SUMMARY:${escapeICS(summary)}`,
+      `DESCRIPTION:${escapeICS(description)}`,
+      `LOCATION:${escapeICS(`${event.location || ""} - Wollaston Gardens`)}`,
+      "END:VEVENT"
+    );
+  }
+
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
+function downloadICS(events) {
+  const ics = buildICSFromApprovedSlots(events);
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "wollaston-gardens-seasonal-calendar.ics";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+function buildMonthGrid(dateString) {
+  const [year, month] = dateString.split("-").map(Number);
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  const startDay = first.getDay();
+  const daysInMonth = last.getDate();
+
+  const cells = [];
+
+  for (let i = 0; i < startDay; i++) cells.push(null);
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    cells.push(iso);
+  }
+
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return cells;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function Metric({ label, value }) {
+  return (
+    <div className="metric">
+      <div className="metric-label">{label}</div>
+      <div className="metric-value">{value}</div>
+    </div>
+  );
+}
+
+function SectionCard({ title, subtitle, children }) {
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h3>{title}</h3>
+        {subtitle ? <p>{subtitle}</p> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const initialSlots = createSlotsFromSchedule();
+
+export default function Page() {
+  const [slots, setSlots] = useState(initialSlots);
+  const [form, setForm] = useState(emptyForm);
+  const [calendarSearch, setCalendarSearch] = useState("");
+  const [selectedSlotId, setSelectedSlotId] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [message, setMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("vendor");
+  const [availabilityMonth, setAvailabilityMonth] = useState("2026-05");
+  const [selectedDate, setSelectedDate] = useState("");
+
+  const [insuranceBookingId, setInsuranceBookingId] = useState("");
+  const [insuranceEmail, setInsuranceEmail] = useState("");
+  const [insuranceFile, setInsuranceFile] = useState(null);
+  const [insuranceMessage, setInsuranceMessage] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const saved = await loadState();
+      if (saved?.slots) setSlots(saved.slots);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("wg_admin_auth");
+    if (stored === "true") setIsAdmin(true);
+
+    const params = new URLSearchParams(window.location.search);
+    const insurance = params.get("insurance");
+    const bookingId = params.get("bookingId");
+
+    if (insurance === "1" && bookingId) {
+      setInsuranceBookingId(bookingId);
+      setTimeout(() => {
+        document.getElementById("insurance-upload")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 300);
+    }
+  }, []);
+
+  useEffect(() => {
+    saveState({ slots });
+  }, [slots]);
+
+  useEffect(() => {
+    if (selectedSlotId) {
+      setForm((prev) => ({ ...prev, slotId: String(selectedSlotId) }));
+    }
+  }, [selectedSlotId]);
+
+  const openSlots = useMemo(
+    () =>
+      slots.filter(
+        (slot) =>
+          slot.status === "open" && !isSlotBlockedByDateConflict(slot, slots)
+      ),
+    [slots]
+  );
+
+  const locationFilteredOpenSlots = useMemo(() => {
+    if (!form.location) return [];
+    return openSlots.filter((slot) => slot.location === form.location);
+  }, [openSlots, form.location]);
+
+  const pendingSlots = useMemo(
+    () => slots.filter((slot) => slot.status === "pending"),
+    [slots]
+  );
+
+  const approvedSlots = useMemo(
+    () => slots.filter((slot) => slot.status === "approved"),
+    [slots]
+  );
+
+  const groupedPublicCalendar = useMemo(() => {
+    const q = calendarSearch.toLowerCase().trim();
+
+    const filteredApproved = approvedSlots
+      .filter((slot) => {
+        return (
+          !q ||
+          String(slot.truck || "").toLowerCase().includes(q) ||
+          String(slot.displayDate || "").toLowerCase().includes(q) ||
+          String(slot.cuisine || "").toLowerCase().includes(q) ||
+          String(slot.slotLabel || "").toLowerCase().includes(q) ||
+          String(slot.location || "").toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) =>
+        `${a.date}${a.startTime}${a.location}`.localeCompare(
+          `${b.date}${b.startTime}${b.location}`
+        )
+      );
+
+    const approvedByDate = new Map();
+
+    for (const slot of filteredApproved) {
+      if (!approvedByDate.has(slot.date)) {
+        approvedByDate.set(slot.date, []);
+      }
+      approvedByDate.get(slot.date).push(slot);
+    }
+
+    const uniqueScheduleDates = Array.from(
+      new Set(SCHEDULE_ROWS.map(([date]) => date))
+    ).sort();
+
+    return uniqueScheduleDates
+      .map((date) => {
+        const [year, month, day] = date.split("-").map(Number);
+        const displayDate = `${getMonthName(month - 1)} ${day}, ${year}`;
+        const items = approvedByDate.get(date) || [];
+
+        return {
+          date,
+          displayDate,
+          items,
+        };
+      })
+      .filter((group) => {
+        if (!q) return true;
+        return (
+          group.displayDate.toLowerCase().includes(q) || group.items.length > 0
+        );
+      });
+  }, [approvedSlots, calendarSearch]);
+
+  const availabilityMonthDates = useMemo(() => {
+    return buildMonthGrid(availabilityMonth);
+  }, [availabilityMonth]);
+
+  const datesWithAvailability = useMemo(() => {
+    return new Set(openSlots.map((slot) => slot.date));
+  }, [openSlots]);
+
+  const selectedDateSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return openSlots
+      .filter((slot) => slot.date === selectedDate)
+      .sort((a, b) => {
+        const first = `${a.startTime}${a.location}`;
+        const second = `${b.startTime}${b.location}`;
+        return first.localeCompare(second);
+      });
+  }, [openSlots, selectedDate]);
+
+  const selectedDateGroupedBySlot = useMemo(() => {
+    const groups = {};
+    for (const slot of selectedDateSlots) {
+      const key = `${slot.startTime}-${slot.endTime}-${slot.slotLabel}`;
+      if (!groups[key]) {
+        groups[key] = {
+          slotLabel: slot.slotLabel,
+          displayTime: slot.displayTime,
+          locations: [],
+        };
+      }
+      groups[key].locations.push(slot);
+    }
+    return Object.values(groups);
+  }, [selectedDateSlots]);
+
+  function updateForm(field, value) {
+    setForm((prev) => {
+      if (field === "location") {
+        return {
+          ...prev,
+          location: value,
+          slotId: "",
+        };
+      }
+
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
+  }
+
+  function selectAvailabilitySlot(slot) {
+    setSelectedSlotId(String(slot.id));
+    setForm((prev) => ({
+      ...prev,
+      location: slot.location,
+      slotId: String(slot.id),
+    }));
+    setActiveTab("vendor");
+    document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  async function submitBooking(e) {
+    e.preventDefault();
+
+    const selectedSlot = slots.find(
+      (slot) => String(slot.id) === String(form.slotId)
+    );
+
+    if (
+      !selectedSlot ||
+      !form.truck ||
+      !form.contactName ||
+      !form.email ||
+      !form.cuisine ||
+      !form.location
+    ) {
+      setMessage(
+        "Please complete all required fields and choose a location and available slot."
+      );
+      return;
+    }
+
+    if (!form.acceptedContract) {
+      setMessage("Please review and accept the contract terms before submitting.");
+      return;
+    }
+
+    if (!form.insuranceAcknowledged) {
+      setMessage(
+        "Please acknowledge the insurance requirement before submitting."
+      );
+      return;
+    }
+
+    if (isSlotBlockedByDateConflict(selectedSlot, slots)) {
+      setMessage(
+        "That slot is no longer available because a conflicting split or full-day request already exists."
+      );
+      return;
+    }
+
+    const updatedSlots = slots.map((slot) => {
+      if (String(slot.id) !== String(form.slotId)) return slot;
+      return {
+        ...slot,
+        status: "pending",
+        truck: form.truck,
+        cuisine: form.cuisine,
+        contactName: form.contactName,
+        email: form.email,
+        phone: form.phone,
+        requirements: form.requirements,
+        notificationState: "queued",
+      };
+    });
+
+    setSlots(updatedSlots);
+
+    try {
+      const response = await fetch("/.netlify/functions/send-booking-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          truck: form.truck,
+          contactName: form.contactName,
+          email: form.email,
+          phone: form.phone,
+          cuisine: form.cuisine,
+          requirements: form.requirements,
+          slotLabel: selectedSlot.slotLabel,
+          displayDate: selectedSlot.displayDate,
+          displayTime: selectedSlot.displayTime,
+          location: selectedSlot.location,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Email sending failed");
+      }
+
+      setMessage(
+        `Booking request submitted. Email notifications sent to ${ADMIN_EMAIL} and ${form.email}.`
+      );
+    } catch {
+      setMessage("Booking request saved, but email sending failed.");
+    }
+
+    setForm(emptyForm);
+    setSelectedSlotId("");
+  }
+
+  async function approveSlot(slotId) {
+    const selected = slots.find((slot) => slot.id === slotId);
+    if (!selected) return;
+
+    const relatedIds = getRelatedSlotIds(selected, slots);
+
+    const updatedSlots = slots.map((slot) => {
+      if (slot.id === slotId) {
+        return {
+          ...slot,
+          status: "approved",
+          notificationState: "sent",
+          depositRequested: true,
+        };
+      }
+
+      if (
+        relatedIds.includes(slot.id) &&
+        slot.id !== slotId &&
+        slot.status === "pending" &&
+        selected.slotKind === "full-day"
+      ) {
+        return {
+          ...slot,
+          status: "declined",
+          adminNotes: "Declined due to approved full-day priority booking.",
+        };
+      }
+
+      return slot;
+    });
+
+    setSlots(updatedSlots);
+
+    const approvedSlot = updatedSlots.find((slot) => slot.id === slotId);
+
+    try {
+      const checkoutResponse = await fetch(
+        "/.netlify/functions/create-checkout-session",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookingId: approvedSlot.id,
+            vendorEmail: approvedSlot.email,
+            truck: approvedSlot.truck,
+            displayDate: approvedSlot.displayDate,
+            displayTime: approvedSlot.displayTime,
+            amountCents: getDepositAmountCents(approvedSlot),
+          }),
+        }
+      );
+
+      const checkoutData = await checkoutResponse.json();
+
+      if (!checkoutResponse.ok) {
+        throw new Error(
+          checkoutData.error || "Failed to create Stripe checkout session"
+        );
+      }
+
+      const emailResponse = await fetch(
+        "/.netlify/functions/send-approval-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookingId: approvedSlot.id,
+            truck: approvedSlot.truck,
+            contactName: approvedSlot.contactName,
+            email: approvedSlot.email,
+            phone: approvedSlot.phone,
+            cuisine: approvedSlot.cuisine,
+            slotLabel: approvedSlot.slotLabel,
+            displayDate: approvedSlot.displayDate,
+            displayTime: approvedSlot.displayTime,
+            location: approvedSlot.location,
+            depositText: getDepositText(approvedSlot),
+            paymentLink: checkoutData.url,
+          }),
+        }
+      );
+
+      const emailData = await emailResponse.json();
+
+      if (!emailResponse.ok) {
+        throw new Error(emailData.error || "Approval email failed");
+      }
+
+      setMessage(
+        `Booking approved. Approval email, text notification, and Stripe deposit request were sent to ${approvedSlot.email}.`
+      );
+    } catch (error) {
+      setMessage(`Booking approved, but follow-up failed: ${error.message}`);
+    }
+  }
+
+  function declineSlot(slotId) {
+    setSlots((prev) =>
+      prev.map((slot) => {
+        if (slot.id !== slotId) return slot;
+
+        return {
+          ...slot,
+          status: "open",
+          truck: null,
+          cuisine: null,
+          contactName: null,
+          email: null,
+          phone: null,
+          requirements: null,
+          depositRequested: false,
+          depositReceived: false,
+          insuranceReceived: false,
+          cancelReason: "",
+          adminNotes: "",
+          notificationState: "not-sent",
+        };
+      })
+    );
+
+    setMessage("Booking request declined and slot reopened.");
+  }
+
+  function cancelReservation(slotId) {
+    const reason =
+      window.prompt("Enter cancellation reason:", "Cancelled by admin") ||
+      "Cancelled by admin";
+
+    setSlots((prev) =>
+      prev.map((slot) => {
+        if (slot.id !== slotId) return slot;
+
+        return {
+          ...slot,
+          status: "open",
+          truck: null,
+          cuisine: null,
+          contactName: null,
+          email: null,
+          phone: null,
+          requirements: null,
+          depositRequested: false,
+          depositReceived: false,
+          insuranceReceived: false,
+          cancelReason: reason,
+          adminNotes: reason,
+          notificationState: "not-sent",
+        };
+      })
+    );
+
+    setMessage(
+      `Reservation cancelled by admin and removed from the Seasonal Calendar. Reason: ${reason}`
+    );
+  }
+
+  function toggleApprovedFlag(slotId, field) {
+    setSlots((prev) =>
+      prev.map((slot) =>
+        slot.id !== slotId ? slot : { ...slot, [field]: !slot[field] }
+      )
+    );
+  }
+
+  async function handleInsuranceUpload(e) {
+    e.preventDefault();
+    setInsuranceMessage("");
+
+    if (!insuranceBookingId || !insuranceEmail || !insuranceFile) {
+      setInsuranceMessage("Please provide booking ID, email, and insurance file.");
+      return;
+    }
+
+    try {
+      const base64 = await fileToBase64(insuranceFile);
+
+      const response = await fetch("/.netlify/functions/insurance-upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookingId: insuranceBookingId,
+          email: insuranceEmail,
+          fileName: insuranceFile.name,
+          fileType: insuranceFile.type || "application/octet-stream",
+          fileDataBase64: base64,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Insurance upload failed");
+      }
+
+      setInsuranceMessage("Insurance uploaded successfully and emailed to admin.");
+      setInsuranceFile(null);
+    } catch (error) {
+      setInsuranceMessage(error.message || "Insurance upload failed");
+    }
+  }
+
+  async function handleAdminLogin() {
+    setLoginError("");
+
+    try {
+      const res = await fetch("/.netlify/functions/admin-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setIsAdmin(true);
+        window.localStorage.setItem("wg_admin_auth", "true");
+        return;
+      }
+
+      setLoginError("Invalid credentials");
+    } catch {
+      setLoginError("Login failed");
+    }
+  }
+
+  function handleLogout() {
+    setIsAdmin(false);
+    setLoginEmail("");
+    setLoginPassword("");
+    setLoginError("");
+    window.localStorage.removeItem("wg_admin_auth");
+  }
 
   return (
-    <main
-      style={{
-        background: "#0b0d10",
-        minHeight: "100vh",
-        color: "#f8fafc",
-      }}
-    >
-      <section
-        style={{
-          padding: "64px 24px 40px",
-          background: "#0b0d10",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.12fr 0.88fr",
-              gap: 28,
-              alignItems: "stretch",
-            }}
-          >
-            <div
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 28,
-                padding: "42px 38px",
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  background: "rgba(201,168,107,0.12)",
-                  border: "1px solid rgba(201,168,107,0.3)",
-                  color: "#d6b26d",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: ".08em",
-                  textTransform: "uppercase",
-                  marginBottom: 24,
-                }}
-              >
-                Sponsorship Opportunities
-              </div>
+    <main className="page">
+      <section className="hero hero-polished">
+        <div className="wrap">
+          <div className="hero-logo">
+            <img src="/logo.png" alt="Wollaston Gardens" />
+          </div>
 
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 66,
-                  lineHeight: 0.95,
-                  letterSpacing: "-0.05em",
-                  fontWeight: 900,
-                  maxWidth: 760,
-                  textTransform: "uppercase",
-                }}
-              >
-                Put Your
-                <br />
-                Brand at
-                <br />
-                Wollaston
-                <br />
-                Gardens
-              </h1>
-
-              <p
-                style={{
-                  margin: "26px 0 0",
-                  maxWidth: 720,
-                  fontSize: 20,
-                  lineHeight: 1.75,
-                  color: "rgba(255,255,255,0.82)",
-                }}
-              >
-                Reach a local Quincy audience through a premium outdoor food and
-                night market experience featuring food trucks, entertainment,
-                community traffic, and recurring seasonal visibility.
+          <div className="hero-shell">
+            <div className="hero-copy">
+              <div className="hero-kicker">Seasonal Food Truck Reservations</div>
+              <h1>Book your food truck at Wollaston Gardens.</h1>
+              <p className="lead">
+                Request seasonal shifts, choose from multiple on-site locations,
+                and join the public calendar once your reservation is approved.
               </p>
 
-              <div
-                style={{
-                  marginTop: 30,
-                  display: "flex",
-                  gap: 14,
-                  flexWrap: "wrap",
-                }}
-              >
-                <a
-                  href="https://sponsors.thewollastongardens.com"
-                  style={primaryButton}
-                >
-                  View Sponsorship Packages
+              <div className="cta-row">
+                <a href="#booking" className="btn btn-primary">
+                  Request a Booking
                 </a>
-                <a href="/calendar" style={secondaryButtonDark}>
-                  View Public Calendar
-                </a>
-              </div>
-
-              <div
-                style={{
-                  marginTop: 22,
-                  fontSize: 14,
-                  color: "rgba(255,255,255,0.7)",
-                  lineHeight: 1.8,
-                }}
-              >
-                Limited sponsor placements available by weekend, month, and season.
-              </div>
-            </div>
-
-            <div
-              style={{
-                borderRadius: 28,
-                overflow: "hidden",
-                border: "1px solid rgba(255,255,255,0.08)",
-                minHeight: 520,
-                background:
-                  "linear-gradient(180deg, rgba(10,12,16,0.2), rgba(10,12,16,0.5)), url('/why/wg-photo-page-1.jpeg') center/cover no-repeat",
-                position: "relative",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  inset: "auto 24px 24px 24px",
-                  background: "rgba(11,13,16,0.74)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 22,
-                  padding: 22,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    letterSpacing: ".08em",
-                    textTransform: "uppercase",
-                    color: "#d6b26d",
-                    marginBottom: 10,
-                  }}
-                >
-                  Brand Exposure
-                </div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 800,
-                    lineHeight: 1.15,
-                    marginBottom: 10,
-                  }}
-                >
-                  A sponsor experience built around visibility, atmosphere, and repeat impressions.
-                </div>
-                <div
-                  style={{
-                    fontSize: 15,
-                    lineHeight: 1.7,
-                    color: "rgba(255,255,255,0.76)",
-                  }}
-                >
-                  From calendar placement to on-site presence, the venue gives sponsors a
-                  polished and community-facing platform.
-                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section style={{ padding: "60px 24px", textAlign: "center" }}>
-  <div style={{ maxWidth: 900, margin: "0 auto" }}>
-    <div style={eyebrow}>Why It Works</div>
+      <section id="booking" className="section">
+        <div className="wrap">
+          <div className="tabs">
+            <button
+              className={activeTab === "vendor" ? "tab active" : "tab"}
+              onClick={() => setActiveTab("vendor")}
+            >
+              Vendor Booking
+            </button>
+            <button
+              className={activeTab === "availability" ? "tab active" : "tab"}
+              onClick={() => setActiveTab("availability")}
+            >
+              Availability
+            </button>
+          </div>
 
-    <h2 style={{
-      fontSize: 42,
-      fontWeight: 900,
-      marginBottom: 16,
-      lineHeight: 1.2
-    }}>
-      A strong local venue with recurring reasons for people to show up
-    </h2>
+          {activeTab === "vendor" ? (
+            <div className="two-col">
+              <SectionCard
+                title="Vendor Booking Request"
+                subtitle="Choose from all available seasonal time slots. Booking is not confirmed until admin approves it."
+              >
+                <form className="stack" onSubmit={submitBooking}>
+                  <div className="grid-two">
+                    <div>
+                      <label>Food truck name *</label>
+                      <input
+                        value={form.truck}
+                        onChange={(e) => updateForm("truck", e.target.value)}
+                        placeholder="Example: Sunset Tacos"
+                      />
+                    </div>
+                    <div>
+                      <label>Contact name *</label>
+                      <input
+                        value={form.contactName}
+                        onChange={(e) => updateForm("contactName", e.target.value)}
+                        placeholder="Your full name"
+                      />
+                    </div>
+                  </div>
 
-    <p style={{
-      fontSize: 18,
-      lineHeight: 1.7,
-      color: "rgba(255,255,255,0.75)"
-    }}>
-      Wollaston Gardens combines location, programming, and seasonal consistency into a sponsorship opportunity that feels local, visible, and easy to understand. Sponsors are not just buying an ad — they’re becoming part of the experience.
-    </p>
-  </div>
+                  <div className="grid-two">
+                    <div>
+                      <label>Email *</label>
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => updateForm("email", e.target.value)}
+                        placeholder="vendor@email.com"
+                      />
+                    </div>
+                    <div>
+                      <label>Phone</label>
+                      <input
+                        value={form.phone}
+                        onChange={(e) => updateForm("phone", e.target.value)}
+                        placeholder="(555) 555-5555"
+                      />
+                    </div>
+                  </div>
 
-  <div style={{
-    maxWidth: 1000,
-    margin: "40px auto 0",
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 16
-  }}>
-    <div style={statCard}>
-      <div style={eyebrow}>Location</div>
-      <div style={statLabel}>Downtown Wollaston near the MBTA Red Line</div>
-    </div>
+                  <div className="grid-two">
+                    <div>
+                      <label>Cuisine type *</label>
+                      <select
+                        value={form.cuisine}
+                        onChange={(e) => updateForm("cuisine", e.target.value)}
+                      >
+                        <option value="">Select cuisine</option>
+                        {CUISINE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-    <div style={statCard}>
-      <div style={eyebrow}>Traffic</div>
-      <div style={statLabel}>Evening and weekend audience flow</div>
-    </div>
+                    <div>
+                      <label>Preferred location *</label>
+                      <select
+                        value={form.location}
+                        onChange={(e) => updateForm("location", e.target.value)}
+                      >
+                        <option value="">Select location</option>
+                        {LOCATIONS.map((location) => (
+                          <option key={location} value={location}>
+                            {location}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-    <div style={statCard}>
-      <div style={eyebrow}>Experience</div>
-      <div style={statLabel}>Food trucks, live entertainment, community vibe</div>
-    </div>
+                  <div className="grid-two">
+                    <div>
+                      <label>Preferred slot *</label>
+                      <select
+                        value={form.slotId}
+                        onChange={(e) => updateForm("slotId", e.target.value)}
+                        disabled={!form.location}
+                      >
+                        <option value="">
+                          {form.location
+                            ? "Choose an available time slot"
+                            : "Select a location first"}
+                        </option>
+                        {locationFilteredOpenSlots
+                          .slice()
+                          .sort((a, b) =>
+                            `${a.date}${a.startTime}`.localeCompare(
+                              `${b.date}${b.startTime}`
+                            )
+                          )
+                          .map((slot) => (
+                            <option key={slot.id} value={String(slot.id)}>
+                              {slot.displayDate} • {slot.displayTime} • {slot.slotLabel} • {getPricing(slot)}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
 
-    <div style={statCard}>
-      <div style={eyebrow}>Seasonality</div>
-      <div style={statLabel}>Recurring exposure summer through fall 2026</div>
-    </div>
-  </div>
-</section>
+                  <div>
+                    <label>Truck details / power requirements</label>
+                    <textarea
+                      value={form.requirements}
+                      onChange={(e) => updateForm("requirements", e.target.value)}
+                      placeholder="Tell us about your setup, electrical needs, and any special notes."
+                      rows={5}
+                    />
+                  </div>
 
-      <section style={{ padding: "8px 24px 32px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: 18,
-            }}
-          >
-            {highlights.map((item, index) => (
-              <div key={item.title} style={featureCard}>
-                <div style={featureIndex}>
-                  {String(index + 1).padStart(2, "0")}
+                  <div className="info-panel">
+                    <div>
+                      <strong>Booking rules:</strong> Booking is not confirmed until the admin approves it.
+                    </div>
+                    <div>
+                      <strong>Deposit:</strong> 50% non-refundable deposit due after approval via {DEPOSIT_METHOD}. Refundable only if admin closes the venue due to weather, unforeseen circumstances, admin cancellation, or non-approval.
+                    </div>
+                    <div>
+                      <strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.
+                    </div>
+                    <div>
+                      <strong>Insurance:</strong> Proof of insurance is required after approval and deposit payment, and must be provided within 48 hours or the reservation may be cancelled.
+                    </div>
+                    <div>
+                      <strong>Vendor mix:</strong> Vendor mix is reviewed manually by admin.
+                    </div>
+                  </div>
+
+                  <div className="note-box">
+                    <div className="strong-row">Vendor contract preview</div>
+                    <p>
+                      Vendor agrees to operate only during approved hours, comply with venue rules,
+                      submit required insurance, avoid unauthorized generator use, and report sales
+                      accurately for percentage rent.
+                    </p>
+
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={form.acceptedContract}
+                        onChange={(e) => updateForm("acceptedContract", e.target.checked)}
+                      />
+                      <span>I reviewed and accept the contract terms.</span>
+                    </label>
+
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={form.insuranceAcknowledged}
+                        onChange={(e) => updateForm("insuranceAcknowledged", e.target.checked)}
+                      />
+                      <span>
+                        I understand proof of insurance is required within 48 hours after approval and deposit payment.
+                      </span>
+                    </label>
+                  </div>
+
+                  <button className="btn btn-danger" type="submit">
+                    Submit Booking Request
+                  </button>
+
+                  {message ? <div className="alert alert-warn">{message}</div> : null}
+                </form>
+              </SectionCard>
+
+              <div className="stack">
+                <SectionCard
+                  title="Booking Policies"
+                  subtitle="Key information vendors need before requesting a reservation."
+                >
+                  <div className="stack-sm">
+                    <div className="note-box">
+                      <strong>Pricing</strong>
+                      <div>Pricing varies by season, shift length, and full-day reservations.</div>
+                    </div>
+                    <div className="note-box">
+                      <strong>Full-day priority</strong>
+                      <div>Saturday and Sunday full-day requests have priority over split shifts when approved by admin.</div>
+                    </div>
+                    <div className="note-box">
+                      <strong>Utilities</strong>
+                      <div>Power is provided by the venue. Generators should only be used when necessary.</div>
+                    </div>
+                    <div className="note-box">
+                      <strong>Approval + insurance</strong>
+                      <div>Admin approval is required before public listing. Insurance proof is required after approval and deposit payment.</div>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <div id="insurance-upload">
+                  <SectionCard
+                    title="Upload Insurance"
+                    subtitle="Approved vendors can upload proof of insurance here using the link from their approval email."
+                  >
+                    <form className="stack" onSubmit={handleInsuranceUpload}>
+                      <div>
+                        <label>Booking ID *</label>
+                        <input
+                          value={insuranceBookingId}
+                          onChange={(e) => setInsuranceBookingId(e.target.value)}
+                          placeholder="Enter booking ID from your approval link"
+                        />
+                      </div>
+
+                      <div>
+                        <label>Vendor email *</label>
+                        <input
+                          type="email"
+                          value={insuranceEmail}
+                          onChange={(e) => setInsuranceEmail(e.target.value)}
+                          placeholder="Enter the same email used for booking"
+                        />
+                      </div>
+
+                      <div>
+                        <label>Insurance file *</label>
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.webp"
+                          onChange={(e) => setInsuranceFile(e.target.files?.[0] || null)}
+                        />
+                      </div>
+
+                      <button className="btn btn-primary" type="submit">
+                        Upload Insurance
+                      </button>
+
+                      {insuranceMessage ? (
+                        <div className="alert alert-warn">{insuranceMessage}</div>
+                      ) : null}
+                    </form>
+                  </SectionCard>
                 </div>
-                <div style={featureTitle}>{item.title}</div>
-                <div style={featureText}>{item.text}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="availability-layout">
+              <SectionCard
+                title="Season Availability Calendar"
+                subtitle="Choose a date first. Then select a shift and location."
+              >
+                <div className="calendar-toolbar">
+                  <div>
+                    <label>Month</label>
+                    <select
+                      value={availabilityMonth}
+                      onChange={(e) => setAvailabilityMonth(e.target.value)}
+                    >
+                      <option value="2026-05">May 2026</option>
+                      <option value="2026-06">June 2026</option>
+                      <option value="2026-07">July 2026</option>
+                      <option value="2026-08">August 2026</option>
+                      <option value="2026-09">September 2026</option>
+                      <option value="2026-10">October 2026</option>
+                    </select>
+                  </div>
+
+                  <div className="calendar-legend">
+                    <span className="legend-dot legend-open"></span>
+                    <span>Has availability</span>
+                  </div>
+                </div>
+
+                <div className="month-grid">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                    <div key={day} className="month-head">
+                      {day}
+                    </div>
+                  ))}
+
+                  {availabilityMonthDates.map((dateCell, index) => {
+                    if (!dateCell) {
+                      return <div key={`empty-${index}`} className="month-cell empty-cell"></div>;
+                    }
+
+                    const dayNumber = Number(dateCell.split("-")[2]);
+                    const hasAvailability = datesWithAvailability.has(dateCell);
+                    const isSelected = selectedDate === dateCell;
+
+                    return (
+                      <button
+                        key={dateCell}
+                        type="button"
+                        className={`month-cell ${hasAvailability ? "has-availability" : "no-availability"} ${isSelected ? "selected-day" : ""}`}
+                        onClick={() => hasAvailability && setSelectedDate(dateCell)}
+                        disabled={!hasAvailability}
+                      >
+                        <div className="month-day-number">{dayNumber}</div>
+                        {hasAvailability ? (
+                          <div className="month-day-note">Open</div>
+                        ) : (
+                          <div className="month-day-note muted-note">No slots</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                title={
+                  selectedDate
+                    ? `Available Shifts for ${selectedDateSlots[0]?.displayDate || selectedDate}`
+                    : "Choose a Date"
+                }
+                subtitle={
+                  selectedDate
+                    ? "Select a shift first, then choose one of the available locations."
+                    : "Click a date on the calendar to view availability."
+                }
+              >
+                {!selectedDate ? (
+                  <div className="empty">
+                    Select a highlighted date to see available lunch, dinner, and full-day options.
+                  </div>
+                ) : selectedDateGroupedBySlot.length === 0 ? (
+                  <div className="empty">No open shifts remain for this date.</div>
+                ) : (
+                  <div className="stack">
+                    {selectedDateGroupedBySlot.map((group) => (
+                      <div key={`${group.displayTime}-${group.slotLabel}`} className="shift-group-card">
+                        <div className="shift-group-header">
+                          <div>
+                            <div className="calendar-name">{group.slotLabel}</div>
+                            <div className="subtle">
+                              {group.displayTime} • {getPricing(group.locations[0])}
+                            </div>
+                          </div>
+                          <span className="badge badge-open">
+                            {group.locations.length} location{group.locations.length === 1 ? "" : "s"}
+                          </span>
+                        </div>
+
+                        <div className="location-chip-row">
+                          {group.locations.map((slot) => (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              className="location-chip"
+                              onClick={() => selectAvailabilitySlot(slot)}
+                            >
+                              {slot.location}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </SectionCard>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section id="calendar" className="section section-light">
+        <div className="wrap">
+          <div className="calendar-section-head">
+            <div>
+              <h2>Seasonal Calendar</h2>
+              <p>
+                Browse approved vendors by date, cuisine, shift, and location.
+              </p>
+            </div>
+
+            <div className="search-wrap calendar-search-wide">
+              <label>Search calendar</label>
+              <input
+                value={calendarSearch}
+                onChange={(e) => setCalendarSearch(e.target.value)}
+                placeholder="Search by vendor, cuisine, shift, date, or location"
+              />
+            </div>
+          </div>
+
+          <div className="public-date-groups">
+            {groupedPublicCalendar.map((group) => (
+              <div key={group.date} className="public-date-group">
+                <div className="public-date-header">
+                  <div className="public-date-title">{group.displayDate}</div>
+                  <div className="public-date-count">
+                    {group.items.length === 0
+                      ? "No bookings yet"
+                      : `${group.items.length} vendor${group.items.length === 1 ? "" : "s"}`}
+                  </div>
+                </div>
+
+                <div className="public-date-items">
+                  {group.items.length === 0 ? (
+                    <div className="public-event-card">
+                      <div className="public-event-main">
+                        <div className="public-event-name">Available</div>
+                        <div className="public-event-meta">
+                          <span>Schedule open</span>
+                          <span>Check booking portal</span>
+                        </div>
+                      </div>
+                      <div className="public-event-time">No approved vendors yet</div>
+                    </div>
+                  ) : (
+                    group.items.map((event) => (
+                      <div key={event.id} className="public-event-card">
+                        <div className="public-event-main">
+                          <div className="public-event-name">{event.truck}</div>
+                          <div className="public-event-meta">
+                            <span>{event.cuisine}</span>
+                            <span>{event.slotLabel}</span>
+                            <span>{event.location}</span>
+                          </div>
+                        </div>
+                        <div className="public-event-time">{event.displayTime}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-     <section style={{ padding: "0 24px 32px" }}>
-  <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-    <div style={{ textAlign: "center", marginBottom: 34 }}>
-      <div style={eyebrow}>Sponsor Value</div>
-      <h2
-        style={{
-          fontSize: 42,
-          fontWeight: 900,
-          margin: "0 0 16px",
-          lineHeight: 1.15,
-          color: "#ffffff",
-          letterSpacing: "-0.03em",
-        }}
-      >
-        On-site presence plus
-        <br />
-        digital visibility
-      </h2>
-
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          gap: 12,
-          marginTop: 18,
-        }}
-      >
-        <div style={darkPill}>Calendar placement</div>
-        <div style={darkPill}>Social media mention</div>
-        <div style={darkPill}>On-site signage</div>
-        <div style={darkPill}>Fence wrap opportunity</div>
-        <div style={darkPill}>Beer coaster placements</div>
-        <div style={darkPill}>Seasonal packages</div>
-      </div>
-
-      <p
-        style={{
-          margin: "22px auto 0",
-          maxWidth: 820,
-          fontSize: 17,
-          lineHeight: 1.75,
-          color: "rgba(255,255,255,0.78)",
-        }}
-      >
-        Sponsorships are designed to deliver both physical presence at the venue
-        and consistent digital exposure across the season.
-      </p>
-
-      <p
-        style={{
-          margin: "18px auto 0",
-          maxWidth: 820,
-          fontSize: 17,
-          lineHeight: 1.75,
-          color: "rgba(255,255,255,0.78)",
-        }}
-      >
-        The opportunity is designed to work for both larger presenting partners
-        and smaller businesses looking for a strong single-weekend presence.
-      </p>
-    </div>
-
-    <div
-      style={{
-        ...lightPanel,
-        background:
-          "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(248,250,252,0.96)), url('/why/wg-photo-page-13.jpeg') center/cover no-repeat",
-      }}
-    >
-      <div style={{ textAlign: "center", marginBottom: 24 }}>
-        <div style={sectionEyebrowDark}>Sponsorship Tiers</div>
-        <h2 style={sectionTitleDark}>Simple packages with clear value</h2>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: 18,
-          alignItems: "start",
-        }}
-      >
-        {sponsorTiers.map((tier) => (
-          <div key={tier.title} style={tierCard}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "start",
-                flexWrap: "wrap",
-                marginBottom: 10,
-              }}
+      <section id="admin" className="section">
+        <div className="wrap two-col">
+          {!isAdmin ? (
+            <SectionCard
+              title="Admin Login"
+              subtitle="Authorized access only."
             >
-              <div style={tierTitle}>{tier.title}</div>
-              <div style={tierPrice}>{tier.price}</div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {tier.items.map((item) => (
-                <div key={item} style={tierItem}>
-                  • {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-</section>
-
-            <p style={{ ...lightText, marginTop: 20 }}>
-              The opportunity is designed to work for both larger presenting
-              partners and smaller businesses looking for a strong single-weekend presence.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section style={{ padding: "0 24px 56px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div
-            style={{
-              borderRadius: 30,
-              overflow: "hidden",
-              border: "1px solid rgba(255,255,255,0.08)",
-              background:
-                "linear-gradient(135deg, rgba(201,168,107,0.14), rgba(15,23,42,0.95))",
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 0,
-              }}
-            >
-              <div style={{ padding: "38px 34px" }}>
-                <div style={eyebrow}>Act Now</div>
-                <h2 style={lightTitle}>
-                  Secure your sponsorship before the best placements are gone
-                </h2>
-                <p style={lightText}>
-                  Weekend, monthly, and season-long placements are limited. If your
-                  brand wants premium visibility at Wollaston Gardens, the best time
-                  to reserve is now.
-                </p>
-
-                <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <a
-                    href="https://sponsors.thewollastongardens.com"
-                    style={primaryButton}
-                  >
-                    Explore Sponsorship Opportunities
-                  </a>
-                  <a href="/calendar" style={secondaryButtonDark}>
-                    View Calendar
-                  </a>
+              <div className="stack" style={{ maxWidth: 420 }}>
+                <div>
+                  <label>Email</label>
+                  <input
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                  />
                 </div>
 
-                <div
-                  style={{
-                    marginTop: 22,
-                    fontSize: 15,
-                    lineHeight: 1.8,
-                    color: "rgba(255,255,255,0.78)",
-                  }}
-                >
-                  info@thewollastongardens.com
-                  <br />
-                  (617) 903-0736
-                  <br />
-                  18 Beale St, Quincy, MA 02170
+                <div>
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                  />
                 </div>
+
+                <button className="btn btn-primary" onClick={handleAdminLogin}>
+                  Login
+                </button>
+
+                {loginError ? <div className="alert alert-warn">{loginError}</div> : null}
               </div>
+            </SectionCard>
+          ) : (
+            <>
+              <SectionCard
+                title="Admin Controls"
+                subtitle="Secure admin access and calendar export."
+              >
+                <div className="stack">
+                  <div className="button-grid">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => downloadICS(approvedSlots)}
+                    >
+                      Export ICS Feed
+                    </button>
 
-              <div
-                style={{
-                  minHeight: 420,
-                  background:
-                    "linear-gradient(180deg, rgba(10,12,16,0.18), rgba(10,12,16,0.52)), url('/why/wg-photo-page-14.jpeg') center/cover no-repeat",
-                }}
-              />
-            </div>
-          </div>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </button>
+                  </div>
+
+                  <div className="metrics">
+                    <Metric label="Approved requests" value={approvedSlots.length} />
+                    <Metric label="Pending requests" value={pendingSlots.length} />
+                    <Metric label="Available time slots" value={openSlots.length} />
+                  </div>
+
+                  <div className="note-box">
+                    Admin receives text and email notifications for all reservation requests.
+                    Vendors are added to the public calendar immediately after admin approval.
+                    Admin can request deposit payment, mark deposit received, mark insurance
+                    received, and cancel any reservation at their discretion.
+                  </div>
+
+                  <div className="note-box">
+                    Admin contact: {ADMIN_EMAIL} • {ADMIN_PHONE}
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                title="Admin Approval Dashboard"
+                subtitle="Review pending requests, enforce full-day priority, manage approved reservations, and control public calendar syndication."
+              >
+                <div className="stack">
+                  <div>
+                    <h4>Pending Requests</h4>
+
+                    {pendingSlots.length === 0 ? (
+                      <div className="empty">No pending requests at the moment.</div>
+                    ) : (
+                      <div className="stack">
+                        {pendingSlots.map((slot) => {
+                          const relatedIds = getRelatedSlotIds(slot, slots);
+                          const conflicts = slots.filter(
+                            (candidate) =>
+                              relatedIds.includes(candidate.id) &&
+                              candidate.id !== slot.id &&
+                              ["pending", "approved"].includes(candidate.status)
+                          );
+
+                          return (
+                            <div key={slot.id} className="admin-card">
+                              <div className="admin-main">
+                                <div className="calendar-name">{slot.truck}</div>
+                                <div className="subtle">
+                                  {slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}
+                                </div>
+
+                                <div className="admin-grid">
+                                  <div>{slot.email}</div>
+                                  <div>{slot.phone || "No phone provided"}</div>
+                                  <div>{slot.cuisine || "Cuisine not specified"}</div>
+                                  <div>{slot.location}</div>
+                                  <div>{slot.requirements || "No setup notes"}</div>
+                                  <div>{getPricing(slot)}</div>
+                                  <div>{getDepositText(slot)}</div>
+                                </div>
+
+                                {conflicts.length > 0 ? (
+                                  <div className="alert alert-warn">
+                                    <strong>Conflict notice:</strong> This request conflicts with {conflicts.length} split/full-day request(s). Full-day approvals take priority.
+                                  </div>
+                                ) : null}
+                              </div>
+
+                              <div className="admin-actions">
+                                <button
+                                  className="btn btn-primary"
+                                  onClick={() => approveSlot(slot.id)}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  className="btn btn-secondary"
+                                  onClick={() => declineSlot(slot.id)}
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4>Approved Reservations</h4>
+
+                    {approvedSlots.length === 0 ? (
+                      <div className="empty">No approved reservations yet.</div>
+                    ) : (
+                      <div className="stack">
+                        {approvedSlots.map((slot) => (
+                          <div key={slot.id} className="admin-card">
+                            <div className="admin-main">
+                              <div className="calendar-name">{slot.truck}</div>
+                              <div className="subtle">
+                                {slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}
+                              </div>
+
+                              <div className="admin-grid">
+                                <div>{slot.cuisine || "Cuisine not specified"}</div>
+                                <div>{slot.location}</div>
+                                <div>{getPricing(slot)}</div>
+                                <div>{slot.email}</div>
+                                <div>{slot.phone || "No phone provided"}</div>
+                                <div>Deposit requested: {slot.depositRequested ? "Yes" : "No"}</div>
+                                <div>Deposit received: {slot.depositReceived ? "Yes" : "No"}</div>
+                                <div>Insurance received: {slot.insuranceReceived ? "Yes" : "No"}</div>
+                                <div>Cancel reason: {slot.cancelReason || "None"}</div>
+                              </div>
+                            </div>
+
+                            <div className="admin-actions">
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "depositRequested")
+                                }
+                              >
+                                {slot.depositRequested ? "Deposit Requested" : "Request Deposit"}
+                              </button>
+
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "depositReceived")
+                                }
+                              >
+                                {slot.depositReceived ? "Deposit Received" : "Mark Deposit Received"}
+                              </button>
+
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "insuranceReceived")
+                                }
+                              >
+                                {slot.insuranceReceived ? "Insurance Received" : "Mark Insurance Received"}
+                              </button>
+
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => cancelReservation(slot.id)}
+                              >
+                                Cancel Reservation
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </SectionCard>
+            </>
+          )}
         </div>
       </section>
     </main>
   );
 }
-
-const primaryButton = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "14px 20px",
-  borderRadius: 14,
-  background: "#d6b26d",
-  color: "#0b0d10",
-  textDecoration: "none",
-  fontWeight: 800,
-  fontSize: 15,
-};
-
-const secondaryButtonDark = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "14px 20px",
-  borderRadius: 14,
-  background: "transparent",
-  color: "#ffffff",
-  textDecoration: "none",
-  fontWeight: 800,
-  fontSize: 15,
-  border: "1px solid rgba(255,255,255,0.16)",
-};
-
-const darkCard = {
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: 28,
-  padding: 26,
-  boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
-};
-
-const lightPanel = {
-  background: "#f8fafc",
-  border: "1px solid rgba(15,23,42,0.08)",
-  borderRadius: 28,
-  padding: 26,
-  boxShadow: "0 16px 40px rgba(15,23,42,0.06)",
-};
-
-const statCard = {
-  background: "#12161c",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: 24,
-  padding: 22,
-  boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
-};
-
-const statNumber = {
-  fontSize: 34,
-  fontWeight: 900,
-  letterSpacing: "-0.04em",
-  color: "#d6b26d",
-  marginBottom: 8,
-};
-
-const statLabel = {
-  fontSize: 15,
-  lineHeight: 1.6,
-  color: "rgba(255,255,255,0.78)",
-};
-
-const eyebrow = {
-  fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: ".08em",
-  textTransform: "uppercase",
-  color: "#d6b26d",
-  marginBottom: 12,
-};
-
-const lightTitle = {
-  margin: 0,
-  fontSize: 34,
-  lineHeight: 1.08,
-  fontWeight: 900,
-  letterSpacing: "-0.03em",
-  color: "#ffffff",
-};
-
-const lightText = {
-  marginTop: 16,
-  fontSize: 17,
-  lineHeight: 1.75,
-  color: "rgba(255,255,255,0.78)",
-};
-
-const featureCard = {
-  background: "#12161c",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: 26,
-  padding: 24,
-  boxShadow: "0 16px 40px rgba(0,0,0,0.16)",
-};
-
-const featureIndex = {
-  fontSize: 13,
-  fontWeight: 900,
-  color: "#d6b26d",
-  letterSpacing: ".08em",
-  marginBottom: 14,
-};
-
-const featureTitle = {
-  fontSize: 24,
-  fontWeight: 800,
-  color: "#ffffff",
-  marginBottom: 10,
-};
-
-const featureText = {
-  fontSize: 16,
-  lineHeight: 1.75,
-  color: "rgba(255,255,255,0.76)",
-};
-
-const sectionEyebrowDark = {
-  fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: ".08em",
-  textTransform: "uppercase",
-  color: "#64748b",
-  marginBottom: 12,
-};
-
-const sectionTitleDark = {
-  margin: 0,
-  fontSize: 34,
-  lineHeight: 1.1,
-  fontWeight: 900,
-  letterSpacing: "-0.03em",
-  color: "#0f172a",
-};
-
-const darkPillGrid = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 10,
-  marginTop: 18,
-};
-
-const darkPill = {
-  padding: "10px 14px",
-  borderRadius: 999,
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.04)",
-  fontSize: 14,
-  fontWeight: 700,
-  color: "#e2e8f0",
-};
-
-const tierCard = {
-  border: "1px solid rgba(15,23,42,0.08)",
-  borderRadius: 20,
-  padding: 18,
-  background: "#ffffff",
-};
-
-const tierTitle = {
-  fontSize: 20,
-  fontWeight: 800,
-  color: "#0f172a",
-};
-
-const tierPrice = {
-  fontSize: 20,
-  fontWeight: 900,
-  color: "#b45309",
-};
-
-const tierItem = {
-  fontSize: 14,
-  lineHeight: 1.6,
-  color: "#475569",
-};
