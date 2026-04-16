@@ -1,55 +1,54 @@
 export default function WhyWollastonGardensPage() {
-  const benefits = [
+  const sponsorTiers = [
     {
-      title: "Prime Location",
-      text: "Located in downtown Wollaston just steps from the MBTA Red Line and Hancock Street, with easy access from Boston and the South Shore.",
+      title: "Season Sponsor",
+      price: "$3,500",
+      items: [
+        "Logo on calendar page",
+        "Featured placement on fence wrap",
+        "Mention on all marketing and social media",
+        "Beer coasters for three weekends",
+        "Included in launch digital and print advertising",
+      ],
     },
     {
-      title: "Built-In Foot Traffic",
-      text: "Over 7,800 residents live within a 15-minute walk, plus steady commuter traffic from Wollaston Station and nearby neighborhood activity.",
+      title: "Monthly Sponsor",
+      price: "$1,000",
+      items: [
+        "All month long",
+        "A-frame at entrance",
+        "Calendar placement plus social media thank you",
+        "Beer coasters for one weekend",
+      ],
     },
     {
-      title: "Marketing Support",
-      text: "Professionally branded and promoted venue with strong local visibility and seasonal exposure.",
-    },
-    {
-      title: "Community Events",
-      text: "Live music, food festivals, family days, and seasonal programming create repeat visits and a high-energy atmosphere.",
-    },
-    {
-      title: "Flexible Scheduling",
-      text: "Choose your preferred dates and build your season around your operating schedule.",
-    },
-    {
-      title: "Growth Potential",
-      text: "Introduce your business to a new audience and grow brand recognition in Quincy and the South Shore.",
+      title: "Single Weekend Sponsor",
+      price: "$500",
+      items: [
+        "4-day sponsorship",
+        "A-frame at entrance",
+        "Calendar placement plus social media thank you",
+      ],
     },
   ];
 
-  const programming = [
-    "Opening Weekend",
-    "Food Festivals",
-    "Live Music Nights",
-    "Family Days",
-    "Cultural Celebrations",
-    "Seasonal Specials",
-    "Closing Celebration",
-  ];
-
-  const requirements = [
-    "Valid Permits",
-    "Liability Insurance",
-    "Food Safety Certification",
-    "Equipment Standards",
-    "Menu Variety",
-    "Availability Commitment",
-    "Professional Presentation",
-  ];
-
-  const mix = [
-    "2–3 food trucks with diverse cuisines",
-    "1–2 beverage vendors / reputable brewers",
-    "1–2 dessert or sweet treat vendors",
+  const highlights = [
+    {
+      title: "Prime Quincy Visibility",
+      text: "Position your brand in a destination setting steps from Wollaston Station and surrounded by local foot traffic.",
+    },
+    {
+      title: "Recurring Seasonal Exposure",
+      text: "Sponsors benefit from repeat impressions across the full summer-fall operating season, not just one isolated event.",
+    },
+    {
+      title: "On-Site + Digital Presence",
+      text: "Your sponsorship works both on the ground and online through the public calendar, venue marketing, and social content.",
+    },
+    {
+      title: "Community-Oriented Brand Fit",
+      text: "Align your brand with local gathering, food culture, entertainment, and a memorable Quincy experience.",
+    },
   ];
 
   return (
@@ -71,7 +70,7 @@ export default function WhyWollastonGardensPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1.15fr 0.85fr",
+              gridTemplateColumns: "1.12fr 0.88fr",
               gap: 28,
               alignItems: "stretch",
             }}
@@ -83,7 +82,6 @@ export default function WhyWollastonGardensPage() {
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 28,
                 padding: "42px 38px",
-                backdropFilter: "blur(6px)",
               }}
             >
               <div
@@ -103,21 +101,23 @@ export default function WhyWollastonGardensPage() {
                   marginBottom: 24,
                 }}
               >
-                Summer–Fall 2026
+                Sponsorship Opportunities
               </div>
 
               <h1
                 style={{
                   margin: 0,
-                  fontSize: 68,
+                  fontSize: 66,
                   lineHeight: 0.95,
                   letterSpacing: "-0.05em",
                   fontWeight: 900,
-                  maxWidth: 720,
+                  maxWidth: 760,
                   textTransform: "uppercase",
                 }}
               >
-                Why
+                Put Your
+                <br />
+                Brand at
                 <br />
                 Wollaston
                 <br />
@@ -127,16 +127,15 @@ export default function WhyWollastonGardensPage() {
               <p
                 style={{
                   margin: "26px 0 0",
-                  maxWidth: 700,
+                  maxWidth: 720,
                   fontSize: 20,
                   lineHeight: 1.75,
                   color: "rgba(255,255,255,0.82)",
                 }}
               >
-                Quincy’s outdoor food and night market is designed for visibility,
-                energy, and repeat traffic. Vendors get access to a highly
-                walkable location, built-in audience flow, curated programming,
-                and a setting that feels elevated from the moment guests arrive.
+                Reach a local Quincy audience through a premium outdoor food and
+                night market experience featuring food trucks, entertainment,
+                community traffic, and recurring seasonal visibility.
               </p>
 
               <div
@@ -147,12 +146,26 @@ export default function WhyWollastonGardensPage() {
                   flexWrap: "wrap",
                 }}
               >
-                <a href="https://sponsors.thewollastongardens.com" style={primaryButton}>
-  Become a Sponsor
-</a>
+                <a
+                  href="https://sponsors.thewollastongardens.com"
+                  style={primaryButton}
+                >
+                  View Sponsorship Packages
+                </a>
                 <a href="/calendar" style={secondaryButtonDark}>
                   View Public Calendar
                 </a>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 22,
+                  fontSize: 14,
+                  color: "rgba(255,255,255,0.7)",
+                  lineHeight: 1.8,
+                }}
+              >
+                Limited sponsor placements available by weekend, month, and season.
               </div>
             </div>
 
@@ -163,7 +176,7 @@ export default function WhyWollastonGardensPage() {
                 border: "1px solid rgba(255,255,255,0.08)",
                 minHeight: 520,
                 background:
-                  "linear-gradient(180deg, rgba(10,12,16,0.15), rgba(10,12,16,0.45)), url('/why/wg-photo-page-1.jpeg') center/cover no-repeat",
+                  "linear-gradient(180deg, rgba(10,12,16,0.2), rgba(10,12,16,0.5)), url('/why/wg-photo-page-1.jpeg') center/cover no-repeat",
                 position: "relative",
               }}
             >
@@ -175,7 +188,6 @@ export default function WhyWollastonGardensPage() {
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 22,
                   padding: 22,
-                  backdropFilter: "blur(8px)",
                 }}
               >
                 <div
@@ -188,7 +200,7 @@ export default function WhyWollastonGardensPage() {
                     marginBottom: 10,
                   }}
                 >
-                  The Experience
+                  Brand Exposure
                 </div>
                 <div
                   style={{
@@ -198,7 +210,7 @@ export default function WhyWollastonGardensPage() {
                     marginBottom: 10,
                   }}
                 >
-                  Food, lights, music, and a community crowd under the stars.
+                  A sponsor experience built around visibility, atmosphere, and repeat impressions.
                 </div>
                 <div
                   style={{
@@ -207,8 +219,8 @@ export default function WhyWollastonGardensPage() {
                     color: "rgba(255,255,255,0.76)",
                   }}
                 >
-                  The venue is built to feel social, energetic, and memorable —
-                  the kind of environment people return to all season.
+                  From calendar placement to on-site presence, the venue gives sponsors a
+                  polished and community-facing platform.
                 </div>
               </div>
             </div>
@@ -216,53 +228,60 @@ export default function WhyWollastonGardensPage() {
         </div>
       </section>
 
-      <section style={{ padding: "32px 24px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div
+      <section style={{ padding: "60px 24px", textAlign: "center" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div style={eyebrow}>Why It Works</div>
+
+          <h2
             style={{
-              display: "grid",
-              gridTemplateColumns: "0.95fr 1.05fr",
-              gap: 24,
+              fontSize: 42,
+              fontWeight: 900,
+              marginBottom: 16,
+              lineHeight: 1.2,
+              color: "#ffffff",
             }}
           >
-            <div style={darkCard}>
-              <div style={eyebrow}>The Opportunity</div>
-              <h2 style={lightTitle}>
-                A standout destination in one of Quincy’s most accessible neighborhoods
-              </h2>
-              <p style={lightText}>
-                Wollaston Gardens sits in the heart of downtown Wollaston, steps
-                from the Red Line and surrounded by strong residential density.
-                The concept blends food trucks, nightlife energy, and community
-                programming into a venue that feels different from anything else
-                in the area.
-              </p>
-            </div>
+            A strong local venue with recurring reasons for people to show up
+          </h2>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 18,
-              }}
-            >
-              <div style={statCard}>
-                <div style={statNumber}>7,800+</div>
-                <div style={statLabel}>Residents within a 15-minute walk</div>
-              </div>
-              <div style={statCard}>
-                <div style={statNumber}>MBTA</div>
-                <div style={statLabel}>Steps from Wollaston Station</div>
-              </div>
-              <div style={statCard}>
-                <div style={statNumber}>Thu–Sun</div>
-                <div style={statLabel}>Evening and weekend operating focus</div>
-              </div>
-              <div style={statCard}>
-                <div style={statNumber}>2026</div>
-                <div style={statLabel}>Summer–fall seasonal opportunity</div>
-              </div>
-            </div>
+          <p
+            style={{
+              fontSize: 18,
+              lineHeight: 1.7,
+              color: "rgba(255,255,255,0.75)",
+            }}
+          >
+            Wollaston Gardens combines location, programming, and seasonal consistency into a sponsorship opportunity that feels local, visible, and easy to understand. Sponsors are not just buying an ad — they’re becoming part of the experience.
+          </p>
+        </div>
+
+        <div
+          style={{
+            maxWidth: 1000,
+            margin: "40px auto 0",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 16,
+          }}
+        >
+          <div style={statCard}>
+            <div style={eyebrow}>Location</div>
+            <div style={statLabel}>Downtown Wollaston location near the MBTA Red Line</div>
+          </div>
+
+          <div style={statCard}>
+            <div style={eyebrow}>Traffic</div>
+            <div style={statLabel}>Evening and weekend traffic pattern</div>
+          </div>
+
+          <div style={statCard}>
+            <div style={eyebrow}>Experience</div>
+            <div style={statLabel}>Food trucks, live entertainment, and community atmosphere</div>
+          </div>
+
+          <div style={statCard}>
+            <div style={eyebrow}>Seasonality</div>
+            <div style={statLabel}>Season-long visibility from summer through fall 2026</div>
           </div>
         </div>
       </section>
@@ -272,11 +291,11 @@ export default function WhyWollastonGardensPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
               gap: 18,
             }}
           >
-            {benefits.map((item, index) => (
+            {highlights.map((item, index) => (
               <div key={item.title} style={featureCard}>
                 <div style={featureIndex}>
                   {String(index + 1).padStart(2, "0")}
@@ -290,81 +309,66 @@ export default function WhyWollastonGardensPage() {
       </section>
 
       <section style={{ padding: "0 24px 32px" }}>
-        <div
-          style={{
-            maxWidth: 1180,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "1.1fr 0.9fr",
-            gap: 24,
-          }}
-        >
-          <div style={lightPanel}>
-            <div style={sectionEyebrowDark}>Operating Hours</div>
-            <h2 style={sectionTitleDark}>Evening and weekend traffic by design</h2>
+        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 34 }}>
+            <div style={eyebrow}>Sponsor Value</div>
+            <h2
+              style={{
+                fontSize: 42,
+                fontWeight: 900,
+                margin: "0 0 16px",
+                lineHeight: 1.15,
+                color: "#ffffff",
+                letterSpacing: "-0.03em",
+              }}
+            >
+              On-site presence plus
+              <br />
+              digital visibility
+            </h2>
 
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 16,
-                marginTop: 20,
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: 12,
+                marginTop: 18,
               }}
             >
-              <div style={innerPanel}>
-                <div style={innerTitle}>Summer Season</div>
-                <div style={innerBody}>May 15 – August 31, 2026</div>
-                <div style={innerList}>Thursdays: 4PM – 9PM</div>
-                <div style={innerList}>Fridays: 4PM – 10PM</div>
-                <div style={innerList}>Saturdays: 12PM – 10PM</div>
-                <div style={innerList}>Sundays: 12PM – 7PM</div>
-              </div>
-
-              <div style={innerPanel}>
-                <div style={innerTitle}>Fall Season</div>
-                <div style={innerBody}>September 1 – October 15, 2026</div>
-                <div style={innerList}>Thursdays: 4PM – 9PM</div>
-                <div style={innerList}>Fridays: 4PM – 10PM</div>
-                <div style={innerList}>Saturdays: 12PM – 10PM</div>
-                <div style={innerList}>Sundays: 12PM – 7PM</div>
-              </div>
+              <div style={darkPill}>Calendar placement</div>
+              <div style={darkPill}>Social media mention</div>
+              <div style={darkPill}>On-site signage</div>
+              <div style={darkPill}>Fence wrap opportunity</div>
+              <div style={darkPill}>Beer coaster placements</div>
+              <div style={darkPill}>Seasonal packages</div>
             </div>
-          </div>
 
-          <div style={darkCard}>
-            <div style={eyebrow}>Event Programming</div>
-            <h2 style={lightTitle}>Reasons people keep coming back</h2>
-            <div style={darkPillGrid}>
-              {programming.map((item) => (
-                <div key={item} style={darkPill}>
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+            <p
+              style={{
+                margin: "22px auto 0",
+                maxWidth: 820,
+                fontSize: 17,
+                lineHeight: 1.75,
+                color: "rgba(255,255,255,0.78)",
+              }}
+            >
+              Sponsorships are designed to deliver both physical presence at the venue
+              and consistent digital exposure across the season.
+            </p>
 
-      <section style={{ padding: "0 24px 32px" }}>
-        <div
-          style={{
-            maxWidth: 1180,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 24,
-          }}
-        >
-          <div style={darkCard}>
-            <div style={eyebrow}>Vendor Mix Strategy</div>
-            <h2 style={lightTitle}>Curated variety creates stronger demand</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 18 }}>
-              {mix.map((item) => (
-                <div key={item} style={listItemDark}>
-                  {item}
-                </div>
-              ))}
-            </div>
+            <p
+              style={{
+                margin: "18px auto 0",
+                maxWidth: 820,
+                fontSize: 17,
+                lineHeight: 1.75,
+                color: "rgba(255,255,255,0.78)",
+              }}
+            >
+              The opportunity is designed to work for both larger presenting partners
+              and smaller businesses looking for a strong single-weekend presence.
+            </p>
           </div>
 
           <div
@@ -374,12 +378,42 @@ export default function WhyWollastonGardensPage() {
                 "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(248,250,252,0.96)), url('/why/wg-photo-page-13.jpeg') center/cover no-repeat",
             }}
           >
-            <div style={sectionEyebrowDark}>Vendor Requirements</div>
-            <h2 style={sectionTitleDark}>What participating vendors need</h2>
-            <div style={pillGridLight}>
-              {requirements.map((item) => (
-                <div key={item} style={pillLight}>
-                  {item}
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <div style={sectionEyebrowDark}>Sponsorship Tiers</div>
+              <h2 style={sectionTitleDark}>Simple packages with clear value</h2>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: 18,
+                alignItems: "start",
+              }}
+            >
+              {sponsorTiers.map((tier) => (
+                <div key={tier.title} style={tierCard}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "start",
+                      flexWrap: "wrap",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div style={tierTitle}>{tier.title}</div>
+                    <div style={tierPrice}>{tier.price}</div>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {tier.items.map((item) => (
+                      <div key={item} style={tierItem}>
+                        • {item}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -406,20 +440,23 @@ export default function WhyWollastonGardensPage() {
               }}
             >
               <div style={{ padding: "38px 34px" }}>
-                <div style={eyebrow}>Vendor Commitment</div>
+                <div style={eyebrow}>Act Now</div>
                 <h2 style={lightTitle}>
-                  Structured enough to create momentum, flexible enough to scale with you
+                  Secure your sponsorship before the best placements are gone
                 </h2>
                 <p style={lightText}>
-                  Vendors who show up consistently build recognition, repeat
-                  business, and stronger local traction. The platform is designed
-                  to reward reliability, quality, and community engagement.
+                  Weekend, monthly, and season-long placements are limited. If your
+                  brand wants premium visibility at Wollaston Gardens, the best time
+                  to reserve is now.
                 </p>
 
                 <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <a href="https://sponsors.thewollastongardens.com" style={primaryButton}>
-  View Sponsorship Packages
-</a>
+                  <a
+                    href="https://sponsors.thewollastongardens.com"
+                    style={primaryButton}
+                  >
+                    Explore Sponsorship Opportunities
+                  </a>
                   <a href="/calendar" style={secondaryButtonDark}>
                     View Calendar
                   </a>
@@ -508,14 +545,6 @@ const statCard = {
   boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
 };
 
-const statNumber = {
-  fontSize: 34,
-  fontWeight: 900,
-  letterSpacing: "-0.04em",
-  color: "#d6b26d",
-  marginBottom: 8,
-};
-
 const statLabel = {
   fontSize: 15,
   lineHeight: 1.6,
@@ -594,40 +623,6 @@ const sectionTitleDark = {
   color: "#0f172a",
 };
 
-const innerPanel = {
-  border: "1px solid rgba(15,23,42,0.08)",
-  borderRadius: 20,
-  padding: 18,
-  background: "#ffffff",
-};
-
-const innerTitle = {
-  fontSize: 18,
-  fontWeight: 800,
-  color: "#0f172a",
-  marginBottom: 8,
-};
-
-const innerBody = {
-  fontSize: 15,
-  lineHeight: 1.7,
-  color: "#475569",
-  marginBottom: 6,
-};
-
-const innerList = {
-  fontSize: 15,
-  lineHeight: 1.7,
-  color: "#475569",
-};
-
-const darkPillGrid = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 10,
-  marginTop: 18,
-};
-
 const darkPill = {
   padding: "10px 14px",
   borderRadius: 999,
@@ -638,29 +633,27 @@ const darkPill = {
   color: "#e2e8f0",
 };
 
-const listItemDark = {
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: 18,
-  padding: 15,
-  background: "rgba(255,255,255,0.04)",
-  fontSize: 15,
-  fontWeight: 700,
-  color: "#e2e8f0",
-};
-
-const pillGridLight = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 10,
-  marginTop: 18,
-};
-
-const pillLight = {
-  padding: "10px 14px",
-  borderRadius: 999,
+const tierCard = {
   border: "1px solid rgba(15,23,42,0.08)",
+  borderRadius: 20,
+  padding: 18,
   background: "#ffffff",
+};
+
+const tierTitle = {
+  fontSize: 20,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
+const tierPrice = {
+  fontSize: 20,
+  fontWeight: 900,
+  color: "#b45309",
+};
+
+const tierItem = {
   fontSize: 14,
-  fontWeight: 700,
-  color: "#334155",
+  lineHeight: 1.6,
+  color: "#475569",
 };
