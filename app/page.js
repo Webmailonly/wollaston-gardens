@@ -397,12 +397,1277 @@ function buildICSFromApprovedSlots(events) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-"PRODID:-//Wollaston Gardens//Seasonal Calendar//EN",
-"CALSCALE:GREGORIAN",
-"METHOD:PUBLISH",
-...events,
-"END:VCALENDAR",
-];
+    "PRODID:-//Wollaston Gardens//Seasonal Calendar//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+  ];
 
-return icsLines.join("\r\n");
+  for (const event of events) {
+    const uid = `booking-${event.id}@wollastongardens.com`;
+    const dtstamp = new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}Z$/, "Z");
+
+    const dtstart = formatICSDateTime(event.date, event.startTime);
+    const dtend = formatICSDateTime(event.date, event.endTime);
+
+    const summary = `${event.truck || "Food Truck"} - ${event.slotLabel || "Shift"}`;
+    const description = [
+      `Vendor: ${event.truck || ""}`,
+      `Cuisine: ${event.cuisine || ""}`,
+      `Location: ${event.location || ""}`,
+      `Shift: ${event.displayTime || ""}`,
+      `Venue: Wollaston Gardens`,
+    ].join("\\n");
+
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:${escapeICS(uid)}`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART:${dtstart}`,
+      `DTEND:${dtend}`,
+      `SUMMARY:${escapeICS(summary)}`,
+      `DESCRIPTION:${escapeICS(description)}`,
+      `LOCATION:${escapeICS(`${event.location || ""} - Wollaston Gardens`)}`,
+      "END:VEVENT"
+    );
+  }
+
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
+function downloadICS(events) {
+  const ics = buildICSFromApprovedSlots(events);
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "wollaston-gardens-seasonal-calendar.ics";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+function buildMonthGrid(dateString) {
+  const [year, month] = dateString.split("-").map(Number);
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  const startDay = first.getDay();
+  const daysInMonth = last.getDate();
+
+  const cells = [];
+
+  for (let i = 0; i < startDay; i++) cells.push(null);
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    cells.push(iso);
+  }
+
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return cells;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function Metric({ label, value }) {
+  return (
+    <div className="metric">
+      <div className="metric-label">{label}</div>
+      <div className="metric-value">{value}</div>
+    </div>
+  );
+}
+
+function SectionCard({ title, subtitle, children }) {
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h3>{title}</h3>
+        {subtitle ? <p>{subtitle}</p> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const initialSlots = createSlotsFromSchedule();
+
+export default function Page() {
+  const [slots, setSlots] = useState(initialSlots);
+  const [form, setForm] = useState(emptyForm);
+  const [calendarSearch, setCalendarSearch] = useState("");
+  const [selectedSlotId, setSelectedSlotId] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [message, setMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("vendor");
+  const [availabilityMonth, setAvailabilityMonth] = useState("2026-05");
+  const [selectedDate, setSelectedDate] = useState("");
+
+  const [insuranceBookingId, setInsuranceBookingId] = useState("");
+  const [insuranceEmail, setInsuranceEmail] = useState("");
+  const [insuranceFile, setInsuranceFile] = useState(null);
+  const [insuranceMessage, setInsuranceMessage] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const saved = await loadState();
+      if (saved?.slots) setSlots(saved.slots);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("wg_admin_auth");
+    if (stored === "true") setIsAdmin(true);
+
+    const params = new URLSearchParams(window.location.search);
+    const insurance = params.get("insurance");
+    const bookingId = params.get("bookingId");
+
+    if (insurance === "1" && bookingId) {
+      setInsuranceBookingId(bookingId);
+      setTimeout(() => {
+        document.getElementById("insurance-upload")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 300);
+    }
+  }, []);
+
+  useEffect(() => {
+    saveState({ slots });
+  }, [slots]);
+
+  useEffect(() => {
+    if (selectedSlotId) {
+      setForm((prev) => ({ ...prev, slotId: String(selectedSlotId) }));
+    }
+  }, [selectedSlotId]);
+
+  const openSlots = useMemo(
+    () =>
+      slots.filter(
+        (slot) =>
+          slot.status === "open" && !isSlotBlockedByDateConflict(slot, slots)
+      ),
+    [slots]
+  );
+
+  const locationFilteredOpenSlots = useMemo(() => {
+    if (!form.location) return [];
+    return openSlots.filter((slot) => slot.location === form.location);
+  }, [openSlots, form.location]);
+
+  const pendingSlots = useMemo(
+    () => slots.filter((slot) => slot.status === "pending"),
+    [slots]
+  );
+
+  const approvedSlots = useMemo(
+    () => slots.filter((slot) => slot.status === "approved"),
+    [slots]
+  );
+
+  const groupedPublicCalendar = useMemo(() => {
+    const q = calendarSearch.toLowerCase().trim();
+
+    const filteredApproved = approvedSlots
+      .filter((slot) => {
+        return (
+          !q ||
+          String(slot.truck || "").toLowerCase().includes(q) ||
+          String(slot.displayDate || "").toLowerCase().includes(q) ||
+          String(slot.cuisine || "").toLowerCase().includes(q) ||
+          String(slot.slotLabel || "").toLowerCase().includes(q) ||
+          String(slot.location || "").toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) =>
+        `${a.date}${a.startTime}${a.location}`.localeCompare(
+          `${b.date}${b.startTime}${b.location}`
+        )
+      );
+
+    const approvedByDate = new Map();
+
+    for (const slot of filteredApproved) {
+      if (!approvedByDate.has(slot.date)) {
+        approvedByDate.set(slot.date, []);
+      }
+      approvedByDate.get(slot.date).push(slot);
+    }
+
+    const uniqueScheduleDates = Array.from(
+      new Set(SCHEDULE_ROWS.map(([date]) => date))
+    ).sort();
+
+    return uniqueScheduleDates
+      .map((date) => {
+        const [year, month, day] = date.split("-").map(Number);
+        const displayDate = `${getMonthName(month - 1)} ${day}, ${year}`;
+        const items = approvedByDate.get(date) || [];
+
+        return {
+          date,
+          displayDate,
+          items,
+        };
+      })
+      .filter((group) => {
+        if (!q) return true;
+        return (
+          group.displayDate.toLowerCase().includes(q) || group.items.length > 0
+        );
+      });
+  }, [approvedSlots, calendarSearch]);
+
+  const availabilityMonthDates = useMemo(() => {
+    return buildMonthGrid(availabilityMonth);
+  }, [availabilityMonth]);
+
+  const datesWithAvailability = useMemo(() => {
+    return new Set(openSlots.map((slot) => slot.date));
+  }, [openSlots]);
+
+  const selectedDateSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return openSlots
+      .filter((slot) => slot.date === selectedDate)
+      .sort((a, b) => {
+        const first = `${a.startTime}${a.location}`;
+        const second = `${b.startTime}${b.location}`;
+        return first.localeCompare(second);
+      });
+  }, [openSlots, selectedDate]);
+
+  const selectedDateGroupedBySlot = useMemo(() => {
+    const groups = {};
+    for (const slot of selectedDateSlots) {
+      const key = `${slot.startTime}-${slot.endTime}-${slot.slotLabel}`;
+      if (!groups[key]) {
+        groups[key] = {
+          slotLabel: slot.slotLabel,
+          displayTime: slot.displayTime,
+          locations: [],
+        };
+      }
+      groups[key].locations.push(slot);
+    }
+    return Object.values(groups);
+  }, [selectedDateSlots]);
+
+  function updateForm(field, value) {
+    setForm((prev) => {
+      if (field === "location") {
+        return {
+          ...prev,
+          location: value,
+          slotId: "",
+        };
+      }
+
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
+  }
+
+  function selectAvailabilitySlot(slot) {
+    setSelectedSlotId(String(slot.id));
+    setForm((prev) => ({
+      ...prev,
+      location: slot.location,
+      slotId: String(slot.id),
+    }));
+    setActiveTab("vendor");
+    document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  async function submitBooking(e) {
+    e.preventDefault();
+
+    const selectedSlot = slots.find(
+      (slot) => String(slot.id) === String(form.slotId)
+    );
+
+    if (
+      !selectedSlot ||
+      !form.truck ||
+      !form.contactName ||
+      !form.email ||
+      !form.cuisine ||
+      !form.location
+    ) {
+      setMessage(
+        "Please complete all required fields and choose a location and available slot."
+      );
+      return;
+    }
+
+    if (!form.acceptedContract) {
+      setMessage("Please review and accept the contract terms before submitting.");
+      return;
+    }
+
+    if (!form.insuranceAcknowledged) {
+      setMessage(
+        "Please acknowledge the insurance requirement before submitting."
+      );
+      return;
+    }
+
+    if (isSlotBlockedByDateConflict(selectedSlot, slots)) {
+      setMessage(
+        "That slot is no longer available because a conflicting split or full-day request already exists."
+      );
+      return;
+    }
+
+    const updatedSlots = slots.map((slot) => {
+      if (String(slot.id) !== String(form.slotId)) return slot;
+      return {
+        ...slot,
+        status: "pending",
+        truck: form.truck,
+        cuisine: form.cuisine,
+        contactName: form.contactName,
+        email: form.email,
+        phone: form.phone,
+        requirements: form.requirements,
+        notificationState: "queued",
+      };
+    });
+
+    setSlots(updatedSlots);
+
+    try {
+      const response = await fetch("/.netlify/functions/send-booking-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          truck: form.truck,
+          contactName: form.contactName,
+          email: form.email,
+          phone: form.phone,
+          cuisine: form.cuisine,
+          requirements: form.requirements,
+          slotLabel: selectedSlot.slotLabel,
+          displayDate: selectedSlot.displayDate,
+          displayTime: selectedSlot.displayTime,
+          location: selectedSlot.location,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Email sending failed");
+      }
+
+      setMessage(
+        `Booking request submitted. Email notifications sent to ${ADMIN_EMAIL} and ${form.email}.`
+      );
+    } catch {
+      setMessage("Booking request saved, but email sending failed.");
+    }
+
+    setForm(emptyForm);
+    setSelectedSlotId("");
+  }
+
+  async function approveSlot(slotId) {
+    const selected = slots.find((slot) => slot.id === slotId);
+    if (!selected) return;
+
+    const relatedIds = getRelatedSlotIds(selected, slots);
+
+    const updatedSlots = slots.map((slot) => {
+      if (slot.id === slotId) {
+        return {
+          ...slot,
+          status: "approved",
+          notificationState: "sent",
+          depositRequested: true,
+        };
+      }
+
+      if (
+        relatedIds.includes(slot.id) &&
+        slot.id !== slotId &&
+        slot.status === "pending" &&
+        selected.slotKind === "full-day"
+      ) {
+        return {
+          ...slot,
+          status: "declined",
+          adminNotes: "Declined due to approved full-day priority booking.",
+        };
+      }
+
+      return slot;
+    });
+
+    setSlots(updatedSlots);
+
+    const approvedSlot = updatedSlots.find((slot) => slot.id === slotId);
+
+    try {
+      const checkoutResponse = await fetch(
+        "/.netlify/functions/create-checkout-session",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookingId: approvedSlot.id,
+            vendorEmail: approvedSlot.email,
+            truck: approvedSlot.truck,
+            displayDate: approvedSlot.displayDate,
+            displayTime: approvedSlot.displayTime,
+            amountCents: getDepositAmountCents(approvedSlot),
+          }),
+        }
+      );
+
+      const checkoutData = await checkoutResponse.json();
+
+      if (!checkoutResponse.ok) {
+        throw new Error(
+          checkoutData.error || "Failed to create Stripe checkout session"
+        );
+      }
+
+      const emailResponse = await fetch(
+        "/.netlify/functions/send-approval-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookingId: approvedSlot.id,
+            truck: approvedSlot.truck,
+            contactName: approvedSlot.contactName,
+            email: approvedSlot.email,
+            phone: approvedSlot.phone,
+            cuisine: approvedSlot.cuisine,
+            slotLabel: approvedSlot.slotLabel,
+            displayDate: approvedSlot.displayDate,
+            displayTime: approvedSlot.displayTime,
+            location: approvedSlot.location,
+            depositText: getDepositText(approvedSlot),
+            paymentLink: checkoutData.url,
+          }),
+        }
+      );
+
+      const emailData = await emailResponse.json();
+
+      if (!emailResponse.ok) {
+        throw new Error(emailData.error || "Approval email failed");
+      }
+
+      setMessage(
+        `Booking approved. Approval email, text notification, and Stripe deposit request were sent to ${approvedSlot.email}.`
+      );
+    } catch (error) {
+      setMessage(`Booking approved, but follow-up failed: ${error.message}`);
+    }
+  }
+
+  function declineSlot(slotId) {
+    setSlots((prev) =>
+      prev.map((slot) => {
+        if (slot.id !== slotId) return slot;
+
+        return {
+          ...slot,
+          status: "open",
+          truck: null,
+          cuisine: null,
+          contactName: null,
+          email: null,
+          phone: null,
+          requirements: null,
+          depositRequested: false,
+          depositReceived: false,
+          insuranceReceived: false,
+          cancelReason: "",
+          adminNotes: "",
+          notificationState: "not-sent",
+        };
+      })
+    );
+
+    setMessage("Booking request declined and slot reopened.");
+  }
+
+  function cancelReservation(slotId) {
+    const reason =
+      window.prompt("Enter cancellation reason:", "Cancelled by admin") ||
+      "Cancelled by admin";
+
+    setSlots((prev) =>
+      prev.map((slot) => {
+        if (slot.id !== slotId) return slot;
+
+        return {
+          ...slot,
+          status: "open",
+          truck: null,
+          cuisine: null,
+          contactName: null,
+          email: null,
+          phone: null,
+          requirements: null,
+          depositRequested: false,
+          depositReceived: false,
+          insuranceReceived: false,
+          cancelReason: reason,
+          adminNotes: reason,
+          notificationState: "not-sent",
+        };
+      })
+    );
+
+    setMessage(
+      `Reservation cancelled by admin and removed from the Seasonal Calendar. Reason: ${reason}`
+    );
+  }
+
+  function toggleApprovedFlag(slotId, field) {
+    setSlots((prev) =>
+      prev.map((slot) =>
+        slot.id !== slotId ? slot : { ...slot, [field]: !slot[field] }
+      )
+    );
+  }
+
+  async function handleInsuranceUpload(e) {
+    e.preventDefault();
+    setInsuranceMessage("");
+
+    if (!insuranceBookingId || !insuranceEmail || !insuranceFile) {
+      setInsuranceMessage("Please provide booking ID, email, and insurance file.");
+      return;
+    }
+
+    try {
+      const base64 = await fileToBase64(insuranceFile);
+
+      const response = await fetch("/.netlify/functions/insurance-upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookingId: insuranceBookingId,
+          email: insuranceEmail,
+          fileName: insuranceFile.name,
+          fileType: insuranceFile.type || "application/octet-stream",
+          fileDataBase64: base64,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Insurance upload failed");
+      }
+
+      setInsuranceMessage("Insurance uploaded successfully and emailed to admin.");
+      setInsuranceFile(null);
+    } catch (error) {
+      setInsuranceMessage(error.message || "Insurance upload failed");
+    }
+  }
+
+  async function handleAdminLogin() {
+    setLoginError("");
+
+    try {
+      const res = await fetch("/.netlify/functions/admin-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setIsAdmin(true);
+        window.localStorage.setItem("wg_admin_auth", "true");
+        return;
+      }
+
+      setLoginError("Invalid credentials");
+    } catch {
+      setLoginError("Login failed");
+    }
+  }
+
+  function handleLogout() {
+    setIsAdmin(false);
+    setLoginEmail("");
+    setLoginPassword("");
+    setLoginError("");
+    window.localStorage.removeItem("wg_admin_auth");
+  }
+
+  return (
+    <main className="page">
+      <section className="hero hero-polished">
+        <div className="wrap">
+          <div className="hero-logo">
+            <img src="/logo.png" alt="Wollaston Gardens" />
+          </div>
+
+          <div className="hero-shell">
+            <div className="hero-copy">
+              <div className="hero-kicker">Seasonal Food Truck Reservations</div>
+              <h1>Book your food truck at Wollaston Gardens.</h1>
+              <p className="lead">
+                Request seasonal shifts, choose from multiple on-site locations,
+                and join the public calendar once your reservation is approved.
+              </p>
+
+              <div className="cta-row">
+                <a href="#booking" className="btn btn-primary">
+                  Request a Booking
+                </a>
+    <a href="/why-wollaston-gardens" className="btn btn-secondary">
+  Why Wollaston Gardens
+</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="booking" className="section">
+        <div className="wrap">
+          <div className="tabs">
+            <button
+              className={activeTab === "vendor" ? "tab active" : "tab"}
+              onClick={() => setActiveTab("vendor")}
+            >
+              Vendor Booking
+            </button>
+            <button
+              className={activeTab === "availability" ? "tab active" : "tab"}
+              onClick={() => setActiveTab("availability")}
+            >
+              Availability
+            </button>
+          </div>
+
+          {activeTab === "vendor" ? (
+            <div className="two-col">
+              <SectionCard
+                title="Vendor Booking Request"
+                subtitle="Choose from all available seasonal time slots. Booking is not confirmed until admin approves it."
+              >
+                <form className="stack" onSubmit={submitBooking}>
+                  <div className="grid-two">
+                    <div>
+                      <label>Food truck name *</label>
+                      <input
+                        value={form.truck}
+                        onChange={(e) => updateForm("truck", e.target.value)}
+                        placeholder="Example: Sunset Tacos"
+                      />
+                    </div>
+                    <div>
+                      <label>Contact name *</label>
+                      <input
+                        value={form.contactName}
+                        onChange={(e) => updateForm("contactName", e.target.value)}
+                        placeholder="Your full name"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid-two">
+                    <div>
+                      <label>Email *</label>
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => updateForm("email", e.target.value)}
+                        placeholder="vendor@email.com"
+                      />
+                    </div>
+                    <div>
+                      <label>Phone</label>
+                      <input
+                        value={form.phone}
+                        onChange={(e) => updateForm("phone", e.target.value)}
+                        placeholder="(555) 555-5555"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid-two">
+                    <div>
+                      <label>Cuisine type *</label>
+                      <select
+                        value={form.cuisine}
+                        onChange={(e) => updateForm("cuisine", e.target.value)}
+                      >
+                        <option value="">Select cuisine</option>
+                        {CUISINE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label>Preferred location *</label>
+                      <select
+                        value={form.location}
+                        onChange={(e) => updateForm("location", e.target.value)}
+                      >
+                        <option value="">Select location</option>
+                        {LOCATIONS.map((location) => (
+                          <option key={location} value={location}>
+                            {location}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid-two">
+                    <div>
+                      <label>Preferred slot *</label>
+                      <select
+                        value={form.slotId}
+                        onChange={(e) => updateForm("slotId", e.target.value)}
+                        disabled={!form.location}
+                      >
+                        <option value="">
+                          {form.location
+                            ? "Choose an available time slot"
+                            : "Select a location first"}
+                        </option>
+                        {locationFilteredOpenSlots
+                          .slice()
+                          .sort((a, b) =>
+                            `${a.date}${a.startTime}`.localeCompare(
+                              `${b.date}${b.startTime}`
+                            )
+                          )
+                          .map((slot) => (
+                            <option key={slot.id} value={String(slot.id)}>
+                              {slot.displayDate} • {slot.displayTime} • {slot.slotLabel} • {getPricing(slot)}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Truck details / power requirements</label>
+                    <textarea
+                      value={form.requirements}
+                      onChange={(e) => updateForm("requirements", e.target.value)}
+                      placeholder="Tell us about your setup, electrical needs, and any special notes."
+                      rows={5}
+                    />
+                  </div>
+
+                  <div className="info-panel">
+                    <div>
+                      <strong>Booking rules:</strong> Booking is not confirmed until the admin approves it.
+                    </div>
+                    <div>
+                      <strong>Deposit:</strong> 50% non-refundable deposit due after approval via {DEPOSIT_METHOD}. Refundable only if admin closes the venue due to weather, unforeseen circumstances, admin cancellation, or non-approval.
+                    </div>
+                    <div>
+                      <strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.
+                    </div>
+                    <div>
+                      <strong>Insurance:</strong> Proof of insurance is required after approval and deposit payment, and must be provided within 48 hours or the reservation may be cancelled.
+                    </div>
+                    <div>
+                      <strong>Vendor mix:</strong> Vendor mix is reviewed manually by admin.
+                    </div>
+                  </div>
+
+                  <div className="note-box">
+                    <div className="strong-row">Vendor contract preview</div>
+                    <p>
+                      Vendor agrees to operate only during approved hours, comply with venue rules,
+                      submit required insurance, avoid unauthorized generator use, and report sales
+                      accurately for percentage rent.
+                    </p>
+
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={form.acceptedContract}
+                        onChange={(e) => updateForm("acceptedContract", e.target.checked)}
+                      />
+                      <span>I reviewed and accept the contract terms.</span>
+                    </label>
+
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={form.insuranceAcknowledged}
+                        onChange={(e) => updateForm("insuranceAcknowledged", e.target.checked)}
+                      />
+                      <span>
+                        I understand proof of insurance is required within 48 hours after approval and deposit payment.
+                      </span>
+                    </label>
+                  </div>
+
+                  <button className="btn btn-danger" type="submit">
+                    Submit Booking Request
+                  </button>
+
+                  {message ? <div className="alert alert-warn">{message}</div> : null}
+                </form>
+              </SectionCard>
+
+              <div className="stack">
+                <SectionCard
+                  title="Booking Policies"
+                  subtitle="Key information vendors need before requesting a reservation."
+                >
+                  <div className="stack-sm">
+                    <div className="note-box">
+                      <strong>Pricing</strong>
+                      <div>Pricing varies by season, shift length, and full-day reservations.</div>
+                    </div>
+                    <div className="note-box">
+                      <strong>Full-day priority</strong>
+                      <div>Saturday and Sunday full-day requests have priority over split shifts when approved by admin.</div>
+                    </div>
+                    <div className="note-box">
+                      <strong>Utilities</strong>
+                      <div>Power is provided by the venue. Generators should only be used when necessary.</div>
+                    </div>
+                    <div className="note-box">
+                      <strong>Approval + insurance</strong>
+                      <div>Admin approval is required before public listing. Insurance proof is required after approval and deposit payment.</div>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <div id="insurance-upload">
+                  <SectionCard
+                    title="Upload Insurance"
+                    subtitle="Approved vendors can upload proof of insurance here using the link from their approval email."
+                  >
+                    <form className="stack" onSubmit={handleInsuranceUpload}>
+                      <div>
+                        <label>Booking ID *</label>
+                        <input
+                          value={insuranceBookingId}
+                          onChange={(e) => setInsuranceBookingId(e.target.value)}
+                          placeholder="Enter booking ID from your approval link"
+                        />
+                      </div>
+
+                      <div>
+                        <label>Vendor email *</label>
+                        <input
+                          type="email"
+                          value={insuranceEmail}
+                          onChange={(e) => setInsuranceEmail(e.target.value)}
+                          placeholder="Enter the same email used for booking"
+                        />
+                      </div>
+
+                      <div>
+                        <label>Insurance file *</label>
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.webp"
+                          onChange={(e) => setInsuranceFile(e.target.files?.[0] || null)}
+                        />
+                      </div>
+
+                      <button className="btn btn-primary" type="submit">
+                        Upload Insurance
+                      </button>
+
+                      {insuranceMessage ? (
+                        <div className="alert alert-warn">{insuranceMessage}</div>
+                      ) : null}
+                    </form>
+                  </SectionCard>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="availability-layout">
+              <SectionCard
+                title="Season Availability Calendar"
+                subtitle="Choose a date first. Then select a shift and location."
+              >
+                <div className="calendar-toolbar">
+                  <div>
+                    <label>Month</label>
+                    <select
+                      value={availabilityMonth}
+                      onChange={(e) => setAvailabilityMonth(e.target.value)}
+                    >
+                      <option value="2026-05">May 2026</option>
+                      <option value="2026-06">June 2026</option>
+                      <option value="2026-07">July 2026</option>
+                      <option value="2026-08">August 2026</option>
+                      <option value="2026-09">September 2026</option>
+                      <option value="2026-10">October 2026</option>
+                    </select>
+                  </div>
+
+                  <div className="calendar-legend">
+                    <span className="legend-dot legend-open"></span>
+                    <span>Has availability</span>
+                  </div>
+                </div>
+
+                <div className="month-grid">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                    <div key={day} className="month-head">
+                      {day}
+                    </div>
+                  ))}
+
+                  {availabilityMonthDates.map((dateCell, index) => {
+                    if (!dateCell) {
+                      return <div key={`empty-${index}`} className="month-cell empty-cell"></div>;
+                    }
+
+                    const dayNumber = Number(dateCell.split("-")[2]);
+                    const hasAvailability = datesWithAvailability.has(dateCell);
+                    const isSelected = selectedDate === dateCell;
+
+                    return (
+                      <button
+                        key={dateCell}
+                        type="button"
+                        className={`month-cell ${hasAvailability ? "has-availability" : "no-availability"} ${isSelected ? "selected-day" : ""}`}
+                        onClick={() => hasAvailability && setSelectedDate(dateCell)}
+                        disabled={!hasAvailability}
+                      >
+                        <div className="month-day-number">{dayNumber}</div>
+                        {hasAvailability ? (
+                          <div className="month-day-note">Open</div>
+                        ) : (
+                          <div className="month-day-note muted-note">No slots</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                title={
+                  selectedDate
+                    ? `Available Shifts for ${selectedDateSlots[0]?.displayDate || selectedDate}`
+                    : "Choose a Date"
+                }
+                subtitle={
+                  selectedDate
+                    ? "Select a shift first, then choose one of the available locations."
+                    : "Click a date on the calendar to view availability."
+                }
+              >
+                {!selectedDate ? (
+                  <div className="empty">
+                    Select a highlighted date to see available lunch, dinner, and full-day options.
+                  </div>
+                ) : selectedDateGroupedBySlot.length === 0 ? (
+                  <div className="empty">No open shifts remain for this date.</div>
+                ) : (
+                  <div className="stack">
+                    {selectedDateGroupedBySlot.map((group) => (
+                      <div key={`${group.displayTime}-${group.slotLabel}`} className="shift-group-card">
+                        <div className="shift-group-header">
+                          <div>
+                            <div className="calendar-name">{group.slotLabel}</div>
+                            <div className="subtle">
+                              {group.displayTime} • {getPricing(group.locations[0])}
+                            </div>
+                          </div>
+                          <span className="badge badge-open">
+                            {group.locations.length} location{group.locations.length === 1 ? "" : "s"}
+                          </span>
+                        </div>
+
+                        <div className="location-chip-row">
+                          {group.locations.map((slot) => (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              className="location-chip"
+                              onClick={() => selectAvailabilitySlot(slot)}
+                            >
+                              {slot.location}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </SectionCard>
+            </div>
+          )}
+        </div>
+      </section>
+
+
+      <section id="admin" className="section">
+        <div className="wrap two-col">
+          {!isAdmin ? (
+            <SectionCard
+              title="Admin Login"
+              subtitle="Authorized access only."
+            >
+              <div className="stack" style={{ maxWidth: 420 }}>
+                <div>
+                  <label>Email</label>
+                  <input
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                  />
+                </div>
+
+                <button className="btn btn-primary" onClick={handleAdminLogin}>
+                  Login
+                </button>
+
+                {loginError ? <div className="alert alert-warn">{loginError}</div> : null}
+              </div>
+            </SectionCard>
+          ) : (
+            <>
+              <SectionCard
+                title="Admin Controls"
+                subtitle="Secure admin access and calendar export."
+              >
+                <div className="stack">
+                  <div className="button-grid">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => downloadICS(approvedSlots)}
+                    >
+                      Export ICS Feed
+                    </button>
+
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </button>
+                  </div>
+
+                  <div className="metrics">
+                    <Metric label="Approved requests" value={approvedSlots.length} />
+                    <Metric label="Pending requests" value={pendingSlots.length} />
+                    <Metric label="Available time slots" value={openSlots.length} />
+                  </div>
+
+                  <div className="note-box">
+                    Admin receives text and email notifications for all reservation requests.
+                    Vendors are added to the public calendar immediately after admin approval.
+                    Admin can request deposit payment, mark deposit received, mark insurance
+                    received, and cancel any reservation at their discretion.
+                  </div>
+
+                  <div className="note-box">
+                    Admin contact: {ADMIN_EMAIL} • {ADMIN_PHONE}
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                title="Admin Approval Dashboard"
+                subtitle="Review pending requests, enforce full-day priority, manage approved reservations, and control public calendar syndication."
+              >
+                <div className="stack">
+                  <div>
+                    <h4>Pending Requests</h4>
+
+                    {pendingSlots.length === 0 ? (
+                      <div className="empty">No pending requests at the moment.</div>
+                    ) : (
+                      <div className="stack">
+                        {pendingSlots.map((slot) => {
+                          const relatedIds = getRelatedSlotIds(slot, slots);
+                          const conflicts = slots.filter(
+                            (candidate) =>
+                              relatedIds.includes(candidate.id) &&
+                              candidate.id !== slot.id &&
+                              ["pending", "approved"].includes(candidate.status)
+                          );
+
+                          return (
+                            <div key={slot.id} className="admin-card">
+                              <div className="admin-main">
+                                <div className="calendar-name">{slot.truck}</div>
+                                <div className="subtle">
+                                  {slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}
+                                </div>
+
+                                <div className="admin-grid">
+                                  <div>{slot.email}</div>
+                                  <div>{slot.phone || "No phone provided"}</div>
+                                  <div>{slot.cuisine || "Cuisine not specified"}</div>
+                                  <div>{slot.location}</div>
+                                  <div>{slot.requirements || "No setup notes"}</div>
+                                  <div>{getPricing(slot)}</div>
+                                  <div>{getDepositText(slot)}</div>
+                                </div>
+
+                                {conflicts.length > 0 ? (
+                                  <div className="alert alert-warn">
+                                    <strong>Conflict notice:</strong> This request conflicts with {conflicts.length} split/full-day request(s). Full-day approvals take priority.
+                                  </div>
+                                ) : null}
+                              </div>
+
+                              <div className="admin-actions">
+                                <button
+                                  className="btn btn-primary"
+                                  onClick={() => approveSlot(slot.id)}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  className="btn btn-secondary"
+                                  onClick={() => declineSlot(slot.id)}
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4>Approved Reservations</h4>
+
+                    {approvedSlots.length === 0 ? (
+                      <div className="empty">No approved reservations yet.</div>
+                    ) : (
+                      <div className="stack">
+                        {approvedSlots.map((slot) => (
+                          <div key={slot.id} className="admin-card">
+                            <div className="admin-main">
+                              <div className="calendar-name">{slot.truck}</div>
+                              <div className="subtle">
+                                {slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}
+                              </div>
+
+                              <div className="admin-grid">
+                                <div>{slot.cuisine || "Cuisine not specified"}</div>
+                                <div>{slot.location}</div>
+                                <div>{getPricing(slot)}</div>
+                                <div>{slot.email}</div>
+                                <div>{slot.phone || "No phone provided"}</div>
+                                <div>Deposit requested: {slot.depositRequested ? "Yes" : "No"}</div>
+                                <div>Deposit received: {slot.depositReceived ? "Yes" : "No"}</div>
+                                <div>Insurance received: {slot.insuranceReceived ? "Yes" : "No"}</div>
+                                <div>Cancel reason: {slot.cancelReason || "None"}</div>
+                              </div>
+                            </div>
+
+                            <div className="admin-actions">
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "depositRequested")
+                                }
+                              >
+                                {slot.depositRequested ? "Deposit Requested" : "Request Deposit"}
+                              </button>
+
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "depositReceived")
+                                }
+                              >
+                                {slot.depositReceived ? "Deposit Received" : "Mark Deposit Received"}
+                              </button>
+
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "insuranceReceived")
+                                }
+                              >
+                                {slot.insuranceReceived ? "Insurance Received" : "Mark Insurance Received"}
+                              </button>
+
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => cancelReservation(slot.id)}
+                              >
+                                Cancel Reservation
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </SectionCard>
+            </>
+          )}
+        </div>
+      </section>
+    </main>
+  );
 }
