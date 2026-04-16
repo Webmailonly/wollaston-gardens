@@ -397,7 +397,12 @@ function buildICSFromApprovedSlots(events) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Wollaston Gardens//Seasonal Calendar//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+"PRODID:-//Wollaston Gardens//Seasonal Calendar//EN",
+"CALSCALE:GREGORIAN",
+"METHOD:PUBLISH",
+...events,
+"END:VCALENDAR",
+];
 
+return icsLines.join("\r\n");
+}
