@@ -1072,7 +1072,7 @@ export default function Page() {
         </div>
       </section>
 
-return icsLines.join("\r\n");
+
       <section id="booking" className="section">
         <div className="wrap">
           <div className="tabs">
