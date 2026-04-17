@@ -1062,10 +1062,7 @@ export default function Page() {
               <div className="cta-row">
                 <a href="#booking" className="btn btn-primary">
                   Request a Booking
-                </a>
-    <a href="/why-wollaston-gardens" className="btn btn-secondary">
-  Why Wollaston Gardens
-</a>
+              
               </div>
             </div>
           </div>
