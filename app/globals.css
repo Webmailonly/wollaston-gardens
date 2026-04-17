@@ -591,3 +591,86 @@ textarea{resize:vertical}
     white-space:normal;
   }
 }
+/* =========================
+   MOBILE OPTIMIZATION
+   ========================= */
+
+@media (max-width: 768px) {
+
+  /* Main layout */
+  .two-col {
+    grid-template-columns: 1fr !important;
+  }
+
+  .grid-two {
+    grid-template-columns: 1fr !important;
+  }
+
+  .availability-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hero section */
+  .hero h1 {
+    font-size: 34px !important;
+    line-height: 1.2;
+  }
+
+  .lead {
+    font-size: 16px !important;
+  }
+
+  .hero-shell {
+    padding: 20px !important;
+  }
+
+  .cta-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cta-row .btn {
+    width: 100%;
+  }
+
+  /* Sections */
+  .section {
+    padding: 40px 16px !important;
+  }
+
+  .wrap {
+    padding: 0 16px !important;
+  }
+
+  /* Cards */
+  .card {
+    padding: 18px !important;
+  }
+
+  /* Forms */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Calendar */
+  .month-grid {
+    gap: 6px;
+  }
+
+  .month-cell {
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+
+  /* Admin cards */
+  .admin-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Buttons */
+  .button-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
