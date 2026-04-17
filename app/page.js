@@ -403,10 +403,6 @@ function buildICSFromApprovedSlots(events) {
 ...events,
 "END:VCALENDAR",
 ];
-    "PRODID:-//Wollaston Gardens//Seasonal Calendar//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-  ];
 
   for (const event of events) {
     const uid = `booking-${event.id}@wollastongardens.com`;
