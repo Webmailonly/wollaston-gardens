@@ -435,7 +435,7 @@ function buildICSFromApprovedSlots(events) {
   }
 
   lines.push("END:VCALENDAR");
-  return lines.join("\r\n");
+
 }
 
 function downloadICS(events) {
