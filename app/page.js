@@ -397,6 +397,12 @@ function buildICSFromApprovedSlots(events) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
+"PRODID:-//Wollaston Gardens//Seasonal Calendar//EN",
+"CALSCALE:GREGORIAN",
+"METHOD:PUBLISH",
+...events,
+"END:VCALENDAR",
+];
     "PRODID:-//Wollaston Gardens//Seasonal Calendar//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
@@ -1062,13 +1068,17 @@ export default function Page() {
               <div className="cta-row">
                 <a href="#booking" className="btn btn-primary">
                   Request a Booking
-              
+                </a>
+    <a href="/why-wollaston-gardens" className="btn btn-secondary">
+  Why Wollaston Gardens
+</a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+return icsLines.join("\r\n");
       <section id="booking" className="section">
         <div className="wrap">
           <div className="tabs">
