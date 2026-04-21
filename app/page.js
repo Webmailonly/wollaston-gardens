@@ -1183,27 +1183,39 @@ export default function Page() {
 
               <div className="stack">
                 <SectionCard
-                  title="Booking Policies"
-                  subtitle="Key information vendors need before requesting a reservation."
-                >
-                  <div className="stack-sm">
-                    <div className="note-box">
-                     <strong>Scheduling</strong>
-<div>Shift approvals are based on availability, vendor mix, and admin review.</div>
-                    <div className="note-box">
-                      <strong>Full-day priority</strong>
-                      <div>Saturday and Sunday full-day requests have priority over split shifts when approved by admin.</div>
-                    </div>
-                    <div className="note-box">
-                      <strong>Utilities</strong>
-                      <div>Power is provided by the venue. Generators should only be used when necessary.</div>
-                    </div>
-                    <div className="note-box">
-                      <strong>Approval + insurance</strong>
-                      <div>Admin approval is required before public listing. Insurance proof is required after approval.</div>
-                    </div>
-                  </div>
-                </SectionCard>
+  title="Booking Policies"
+  subtitle="Key information vendors need before requesting a reservation."
+>
+  <div className="stack-sm">
+    <div className="note-box">
+      <strong>Scheduling</strong>
+      <div>
+        Shift approvals are based on availability, vendor mix, and admin review.
+      </div>
+    </div>
+
+    <div className="note-box">
+      <strong>Full-day priority</strong>
+      <div>
+        Saturday and Sunday full-day requests have priority over split shifts when approved by admin.
+      </div>
+    </div>
+
+    <div className="note-box">
+      <strong>Utilities</strong>
+      <div>
+        Power is provided by the venue. Generators should only be used when necessary.
+      </div>
+    </div>
+
+    <div className="note-box">
+      <strong>Approval + insurance</strong>
+      <div>
+        Admin approval is required before public listing. Insurance proof is required after approval.
+      </div>
+    </div>
+  </div>
+</SectionCard>
 
                 <div id="insurance-upload">
                   <SectionCard
