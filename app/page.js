@@ -751,7 +751,7 @@ export default function Page() {
     setSelectedSlotId("");
   }
 
-  async function approveSlot(slotId) {
+ async function approveSlot(slotId) {
   const selected = slots.find((slot) => slot.id === slotId);
   if (!selected) return;
 
@@ -763,7 +763,8 @@ export default function Page() {
         ...slot,
         status: "approved",
         notificationState: "sent",
-
+        depositRequested: false,
+        depositReceived: false,
       };
     }
 
@@ -823,11 +824,6 @@ export default function Page() {
     setMessage(`Booking approved, but follow-up failed: ${error.message}`);
   }
 }
-    } catch (error) {
-      setMessage(`Booking approved, but follow-up failed: ${error.message}`);
-    }
-  }
-
   function declineSlot(slotId) {
     setSlots((prev) =>
       prev.map((slot) => {
