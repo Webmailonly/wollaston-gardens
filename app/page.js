@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 const VENUE_NAME = "Wollaston Gardens";
 const ADMIN_EMAIL = "info@thewollastongardens.com";
 const ADMIN_PHONE = "617 903 0736";
-const DEPOSIT_METHOD = "";
+
 
 const LOCATIONS = [
   "Location 1",
@@ -184,9 +184,7 @@ function getMonthName(monthIndex) {
   ][monthIndex];
 }
 
-function getDepositAmountCents() {
-  return 10000;
-}
+
 
 function createSlotsFromSchedule() {
   let id = 1;
@@ -210,8 +208,6 @@ function createSlotsFromSchedule() {
         email: null,
         phone: null,
         requirements: null,
-        depositRequested: false,
-        depositReceived: false,
         insuranceReceived: false,
         cancelReason: "",
         adminNotes: "",
@@ -756,101 +752,77 @@ export default function Page() {
   }
 
   async function approveSlot(slotId) {
-    const selected = slots.find((slot) => slot.id === slotId);
-    if (!selected) return;
+  const selected = slots.find((slot) => slot.id === slotId);
+  if (!selected) return;
 
-    const relatedIds = getRelatedSlotIds(selected, slots);
+  const relatedIds = getRelatedSlotIds(selected, slots);
 
-    const updatedSlots = slots.map((slot) => {
-      if (slot.id === slotId) {
-        return {
-          ...slot,
-          status: "approved",
-          notificationState: "sent",
-          depositRequested: true,
-        };
+  const updatedSlots = slots.map((slot) => {
+    if (slot.id === slotId) {
+      return {
+        ...slot,
+        status: "approved",
+        notificationState: "sent",
+
+      };
+    }
+
+    if (
+      relatedIds.includes(slot.id) &&
+      slot.id !== slotId &&
+      slot.status === "pending" &&
+      selected.slotKind === "full-day"
+    ) {
+      return {
+        ...slot,
+        status: "declined",
+        adminNotes: "Declined due to approved full-day priority booking.",
+      };
+    }
+
+    return slot;
+  });
+
+  setSlots(updatedSlots);
+
+  const approvedSlot = updatedSlots.find((slot) => slot.id === slotId);
+
+  try {
+    const emailResponse = await fetch(
+      "/.netlify/functions/send-approval-email",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookingId: approvedSlot.id,
+          truck: approvedSlot.truck,
+          contactName: approvedSlot.contactName,
+          email: approvedSlot.email,
+          phone: approvedSlot.phone,
+          cuisine: approvedSlot.cuisine,
+          slotLabel: approvedSlot.slotLabel,
+          displayDate: approvedSlot.displayDate,
+          displayTime: approvedSlot.displayTime,
+          location: approvedSlot.location,
+        }),
       }
+    );
 
-      if (
-        relatedIds.includes(slot.id) &&
-        slot.id !== slotId &&
-        slot.status === "pending" &&
-        selected.slotKind === "full-day"
-      ) {
-        return {
-          ...slot,
-          status: "declined",
-          adminNotes: "Declined due to approved full-day priority booking.",
-        };
-      }
+    const emailData = await emailResponse.json();
 
-      return slot;
-    });
+    if (!emailResponse.ok) {
+      throw new Error(emailData.error || "Approval email failed");
+    }
 
-    setSlots(updatedSlots);
-
-    const approvedSlot = updatedSlots.find((slot) => slot.id === slotId);
-
-    try {
-      const checkoutResponse = await fetch(
-        "/.netlify/functions/create-checkout-session",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            bookingId: approvedSlot.id,
-            vendorEmail: approvedSlot.email,
-            truck: approvedSlot.truck,
-            displayDate: approvedSlot.displayDate,
-            displayTime: approvedSlot.displayTime,
-            amountCents: getDepositAmountCents(approvedSlot),
-          }),
-        }
-      );
-
-      const checkoutData = await checkoutResponse.json();
-
-      if (!checkoutResponse.ok) {
-        throw new Error(
-          checkoutData.error || "Failed to create Stripe checkout session"
-        );
-      }
-
-      const emailResponse = await fetch(
-        "/.netlify/functions/send-approval-email",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            bookingId: approvedSlot.id,
-            truck: approvedSlot.truck,
-            contactName: approvedSlot.contactName,
-            email: approvedSlot.email,
-            phone: approvedSlot.phone,
-            cuisine: approvedSlot.cuisine,
-            slotLabel: approvedSlot.slotLabel,
-            displayDate: approvedSlot.displayDate,
-            displayTime: approvedSlot.displayTime,
-            location: approvedSlot.location,
-            depositText: getDepositText(approvedSlot),
-            paymentLink: checkoutData.url,
-          }),
-        }
-      );
-
-      const emailData = await emailResponse.json();
-
-      if (!emailResponse.ok) {
-        throw new Error(emailData.error || "Approval email failed");
-      }
-
-      setMessage(
-        `Booking approved. Approval email, text notification, and Stripe deposit request were sent to ${approvedSlot.email}.`
-      );
+    setMessage(
+      `Booking approved. Approval email and text notification were sent to ${approvedSlot.email}.`
+    );
+  } catch (error) {
+    setMessage(`Booking approved, but follow-up failed: ${error.message}`);
+  }
+}
     } catch (error) {
       setMessage(`Booking approved, but follow-up failed: ${error.message}`);
     }
@@ -870,8 +842,7 @@ export default function Page() {
           email: null,
           phone: null,
           requirements: null,
-          depositRequested: false,
-          depositReceived: false,
+
           insuranceReceived: false,
           cancelReason: "",
           adminNotes: "",
@@ -901,8 +872,7 @@ export default function Page() {
           email: null,
           phone: null,
           requirements: null,
-          depositRequested: false,
-          depositReceived: false,
+
           insuranceReceived: false,
           cancelReason: reason,
           adminNotes: reason,
@@ -1171,7 +1141,7 @@ export default function Page() {
                       <strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.
                     </div>
                     <div>
-                      <strong>Insurance:</strong> Proof of insurance is required after approval and deposit payment, and must be provided within 48 hours or the reservation may be cancelled.
+                      <strong>Insurance:</strong> Proof of insurance is required after approval, and must be provided within 48 hours or the reservation may be cancelled.
                     </div>
                     <div>
                       <strong>Vendor mix:</strong> Vendor mix is reviewed manually by admin.
@@ -1202,7 +1172,7 @@ export default function Page() {
                         onChange={(e) => updateForm("insuranceAcknowledged", e.target.checked)}
                       />
                       <span>
-                        I understand proof of insurance is required within 48 hours after approval and deposit payment.
+                        I understand proof of insurance is required within 48 hours after approval.
                       </span>
                     </label>
                   </div>
@@ -1234,7 +1204,7 @@ export default function Page() {
                     </div>
                     <div className="note-box">
                       <strong>Approval + insurance</strong>
-                      <div>Admin approval is required before public listing. Insurance proof is required after approval and deposit payment.</div>
+                      <div>Admin approval is required before public listing. Insurance proof is required after approval.</div>
                     </div>
                   </div>
                 </SectionCard>
@@ -1470,7 +1440,7 @@ export default function Page() {
                   <div className="note-box">
                     Admin receives text and email notifications for all reservation requests.
                     Vendors are added to the public calendar immediately after admin approval.
-                    Admin can request deposit payment, mark deposit received, mark insurance
+                    Admin can approve bookings, mark insurance
                     received, and cancel any reservation at their discretion.
                   </div>
 
@@ -1550,70 +1520,7 @@ export default function Page() {
                   <div>
                     <h4>Approved Reservations</h4>
 
-                    {approvedSlots.length === 0 ? (
-                      <div className="empty">No approved reservations yet.</div>
-                    ) : (
-                      <div className="stack">
-                        {approvedSlots.map((slot) => (
-                          <div key={slot.id} className="admin-card">
-                            <div className="admin-main">
-                              <div className="calendar-name">{slot.truck}</div>
-                              <div className="subtle">
-                                {slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}
-                              </div>
-
-                              <div className="admin-grid">
-                                <div>{slot.cuisine || "Cuisine not specified"}</div>
-                                <div>{slot.location}</div>
-                              
-                                <div>{slot.email}</div>
-                                <div>{slot.phone || "No phone provided"}</div>
-                                <div>Deposit requested: {slot.depositRequested ? "Yes" : "No"}</div>
-                                <div>Deposit received: {slot.depositReceived ? "Yes" : "No"}</div>
-                                <div>Insurance received: {slot.insuranceReceived ? "Yes" : "No"}</div>
-                                <div>Cancel reason: {slot.cancelReason || "None"}</div>
-                              </div>
-                            </div>
-
-                            <div className="admin-actions">
-                              <button
-                                className="btn btn-secondary"
-                                onClick={() =>
-                                  toggleApprovedFlag(slot.id, "depositRequested")
-                                }
-                              >
-                                {slot.depositRequested ? "Deposit Requested" : "Request Deposit"}
-                              </button>
-
-                              <button
-                                className="btn btn-secondary"
-                                onClick={() =>
-                                  toggleApprovedFlag(slot.id, "depositReceived")
-                                }
-                              >
-                                {slot.depositReceived ? "Deposit Received" : "Mark Deposit Received"}
-                              </button>
-
-                              <button
-                                className="btn btn-secondary"
-                                onClick={() =>
-                                  toggleApprovedFlag(slot.id, "insuranceReceived")
-                                }
-                              >
-                                {slot.insuranceReceived ? "Insurance Received" : "Mark Insurance Received"}
-                              </button>
-
-                              <button
-                                className="btn btn-danger"
-                                onClick={() => cancelReservation(slot.id)}
-                              >
-                                Cancel Reservation
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                   
                   </div>
                 </div>
               </SectionCard>
