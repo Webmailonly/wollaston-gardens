@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 const VENUE_NAME = "Wollaston Gardens";
 const ADMIN_EMAIL = "info@thewollastongardens.com";
 const ADMIN_PHONE = "617 903 0736";
-const DEPOSIT_METHOD = "Stripe";
+const DEPOSIT_METHOD = "";
 
 const LOCATIONS = [
   "Location 1",
@@ -184,50 +184,8 @@ function getMonthName(monthIndex) {
   ][monthIndex];
 }
 
-function getSeasonWindow(date) {
-  if (date >= "2026-05-15" && date <= "2026-06-30") return "may-june";
-  if (date >= "2026-07-01" && date < "2026-08-15") return "july-aug14";
-  return "aug15-oct15";
-}
-
-function getPricing(slot) {
-  if (slot.date === "2026-10-03" || slot.date === "2026-10-04") {
-    return "$250 + 10% of sales";
-  }
-
-  const season = getSeasonWindow(slot.date);
-
-  if (slot.slotKind === "full-day") {
-    return season === "july-aug14"
-      ? "$175 + 10% of sales"
-      : "$225 + 10% of sales";
-  }
-
-  if (slot.durationHours === 3) {
-    return season === "july-aug14"
-      ? "$125 + 12% of sales"
-      : "$150 + 10% of sales";
-  }
-
-  if (slot.durationHours === 4 || slot.durationHours === 5) {
-    return season === "july-aug14"
-      ? "$125 + 10% of sales"
-      : "$175 + 10% of sales";
-  }
-
-  return "$150 + 10% of sales";
-}
-
-function getDepositText(slot) {
-  return `50% deposit due after approval via ${DEPOSIT_METHOD}. Rate: ${getPricing(slot)}`;
-}
-
-function getDepositAmountCents(slot) {
-  const price = getPricing(slot);
-  const match = price.match(/\$(\d+)/);
-  if (!match) return 10000;
-  const fullAmount = Number(match[1]);
-  return Math.round(fullAmount * 100 * 0.5);
+function getDepositAmountCents() {
+  return 10000;
 }
 
 function createSlotsFromSchedule() {
@@ -1188,7 +1146,7 @@ export default function Page() {
                           )
                           .map((slot) => (
                             <option key={slot.id} value={String(slot.id)}>
-                              {slot.displayDate} • {slot.displayTime} • {slot.slotLabel} • {getPricing(slot)}
+                              {slot.displayDate} • {slot.displayTime} • {slot.slotLabel}
                             </option>
                           ))}
                       </select>
@@ -1208,9 +1166,6 @@ export default function Page() {
                   <div className="info-panel">
                     <div>
                       <strong>Booking rules:</strong> Booking is not confirmed until the admin approves it.
-                    </div>
-                    <div>
-                      <strong>Deposit:</strong> 50% non-refundable deposit due after approval via {DEPOSIT_METHOD}. Refundable only if admin closes the venue due to weather, unforeseen circumstances, admin cancellation, or non-approval.
                     </div>
                     <div>
                       <strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.
@@ -1267,9 +1222,8 @@ export default function Page() {
                 >
                   <div className="stack-sm">
                     <div className="note-box">
-                      <strong>Pricing</strong>
-                      <div>Pricing varies by season, shift length, and full-day reservations.</div>
-                    </div>
+                     <strong>Scheduling</strong>
+<div>Shift approvals are based on availability, vendor mix, and admin review.</div>
                     <div className="note-box">
                       <strong>Full-day priority</strong>
                       <div>Saturday and Sunday full-day requests have priority over split shifts when approved by admin.</div>
@@ -1421,7 +1375,7 @@ export default function Page() {
                           <div>
                             <div className="calendar-name">{group.slotLabel}</div>
                             <div className="subtle">
-                              {group.displayTime} • {getPricing(group.locations[0])}
+                              {group.displayTime} 
                             </div>
                           </div>
                           <span className="badge badge-open">
@@ -1561,8 +1515,8 @@ export default function Page() {
                                   <div>{slot.cuisine || "Cuisine not specified"}</div>
                                   <div>{slot.location}</div>
                                   <div>{slot.requirements || "No setup notes"}</div>
-                                  <div>{getPricing(slot)}</div>
-                                  <div>{getDepositText(slot)}</div>
+                            
+                                
                                 </div>
 
                                 {conflicts.length > 0 ? (
@@ -1611,7 +1565,7 @@ export default function Page() {
                               <div className="admin-grid">
                                 <div>{slot.cuisine || "Cuisine not specified"}</div>
                                 <div>{slot.location}</div>
-                                <div>{getPricing(slot)}</div>
+                              
                                 <div>{slot.email}</div>
                                 <div>{slot.phone || "No phone provided"}</div>
                                 <div>Deposit requested: {slot.depositRequested ? "Yes" : "No"}</div>
