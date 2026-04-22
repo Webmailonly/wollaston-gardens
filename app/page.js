@@ -5,8 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 const VENUE_NAME = "Wollaston Gardens";
 const ADMIN_EMAIL = "info@thewollastongardens.com";
 const ADMIN_PHONE = "617 903 0736";
-
-
 const MAX_BOOKINGS_PER_SHIFT = 2;
 
 const CUISINE_OPTIONS = [
@@ -131,7 +129,6 @@ const emptyForm = {
   email: "",
   phone: "",
   cuisine: "",
-  location: VENUE_NAME,
   requirements: "",
   slotId: "",
   acceptedContract: false,
@@ -179,20 +176,127 @@ function getMonthName(monthIndex) {
   ][monthIndex];
 }
 
+function createSlotsFromSchedule() {
+  let id = 1;
+  const slots = [];
 
+  for (const [date, day] of SCHEDULE_ROWS) {
+    const [year, month, dayNumber] = date.split("-").map(Number);
+    const displayDate = `${getMonthName(month - 1)} ${dayNumber}, ${year}`;
 
-function getRelatedSlotIds(slot, allSlots) {
-  if (!slot) return [];
+    const base = {
+      date,
+      displayDate,
+      day,
+      location: VENUE_NAME,
+      status: "open",
+      venueArea: VENUE_NAME,
+      truck: null,
+      cuisine: null,
+      contactName: null,
+      email: null,
+      phone: null,
+      requirements: null,
+      insuranceReceived: false,
+      cancelReason: "",
+      adminNotes: "",
+      notificationState: "not-sent",
+    };
 
-  return allSlots
-    .filter(
-      (candidate) =>
-        candidate.date === slot.date &&
-        candidate.startTime === slot.startTime &&
-        candidate.endTime === slot.endTime &&
-        candidate.slotLabel === slot.slotLabel
-    )
-    .map((candidate) => candidate.id);
+    const pushSlot = (extra) => {
+      for (let spotNumber = 1; spotNumber <= MAX_BOOKINGS_PER_SHIFT; spotNumber++) {
+        slots.push({
+          ...base,
+          id: id++,
+          spotNumber,
+          ...extra,
+        });
+      }
+    };
+
+    if (day === "Thursday" || day === "Friday") {
+      pushSlot({
+        startTime: "16:00",
+        endTime: "21:00",
+        displayTime: "4:00 PM - 9:00 PM",
+        category: "Dinner",
+        slotKind: "standard",
+        slotLabel: "Dinner Shift",
+        durationHours: 5,
+      });
+      continue;
+    }
+
+    if (day === "Saturday") {
+      pushSlot({
+        startTime: "12:00",
+        endTime: "15:00",
+        displayTime: "12:00 PM - 3:00 PM",
+        category: "Lunch",
+        slotKind: "partial",
+        slotLabel: "Lunch Shift",
+        durationHours: 3,
+      });
+
+      pushSlot({
+        startTime: "16:00",
+        endTime: "21:00",
+        displayTime: "4:00 PM - 9:00 PM",
+        category: "Dinner",
+        slotKind: "partial",
+        slotLabel: "Dinner Shift",
+        durationHours: 5,
+      });
+
+      pushSlot({
+        startTime: "12:00",
+        endTime: "21:00",
+        displayTime: "12:00 PM - 9:00 PM",
+        category: "Full Day",
+        slotKind: "full-day",
+        slotLabel: "Full Day",
+        durationHours: 9,
+        priorityTier: "priority",
+      });
+
+      continue;
+    }
+
+    if (day === "Sunday") {
+      pushSlot({
+        startTime: "12:00",
+        endTime: "15:00",
+        displayTime: "12:00 PM - 3:00 PM",
+        category: "Lunch",
+        slotKind: "partial",
+        slotLabel: "Midday Shift",
+        durationHours: 3,
+      });
+
+      pushSlot({
+        startTime: "16:00",
+        endTime: "19:00",
+        displayTime: "4:00 PM - 7:00 PM",
+        category: "Dinner",
+        slotKind: "partial",
+        slotLabel: "Evening Shift",
+        durationHours: 3,
+      });
+
+      pushSlot({
+        startTime: "12:00",
+        endTime: "19:00",
+        displayTime: "12:00 PM - 7:00 PM",
+        category: "Full Day",
+        slotKind: "full-day",
+        slotLabel: "Full Day",
+        durationHours: 7,
+        priorityTier: "priority",
+      });
+    }
+  }
+
+  return slots;
 }
 
 function getRelatedSlotIds(slot, allSlots) {
@@ -258,9 +362,8 @@ function buildICSFromApprovedSlots(events) {
     const description = [
       `Vendor: ${event.truck || ""}`,
       `Cuisine: ${event.cuisine || ""}`,
-      `Location: ${event.location || ""}`,
       `Shift: ${event.displayTime || ""}`,
-      `Venue: Wollaston Gardens`,
+      `Venue: ${VENUE_NAME}`,
     ].join("\\n");
 
     lines.push(
@@ -271,13 +374,13 @@ function buildICSFromApprovedSlots(events) {
       `DTEND:${dtend}`,
       `SUMMARY:${escapeICS(summary)}`,
       `DESCRIPTION:${escapeICS(description)}`,
-      `LOCATION:${escapeICS(`${event.location || ""} - Wollaston Gardens`)}`,
+      `LOCATION:${escapeICS(VENUE_NAME)}`,
       "END:VEVENT"
     );
   }
 
   lines.push("END:VCALENDAR");
-
+  return lines.join("\r\n");
 }
 
 function downloadICS(events) {
@@ -353,7 +456,6 @@ const initialSlots = createSlotsFromSchedule();
 export default function Page() {
   const [slots, setSlots] = useState(initialSlots);
   const [form, setForm] = useState(emptyForm);
-  const [calendarSearch, setCalendarSearch] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -414,8 +516,6 @@ export default function Page() {
     [slots]
   );
 
-  
-
   const pendingSlots = useMemo(
     () => slots.filter((slot) => slot.status === "pending"),
     [slots]
@@ -425,59 +525,6 @@ export default function Page() {
     () => slots.filter((slot) => slot.status === "approved"),
     [slots]
   );
-
-  const groupedPublicCalendar = useMemo(() => {
-    const q = calendarSearch.toLowerCase().trim();
-
-    const filteredApproved = approvedSlots
-      .filter((slot) => {
-        return (
-          !q ||
-          String(slot.truck || "").toLowerCase().includes(q) ||
-          String(slot.displayDate || "").toLowerCase().includes(q) ||
-          String(slot.cuisine || "").toLowerCase().includes(q) ||
-          String(slot.slotLabel || "").toLowerCase().includes(q) ||
-          String(slot.location || "").toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) =>
-        `${a.date}${a.startTime}${a.location}`.localeCompare(
-          `${b.date}${b.startTime}${b.location}`
-        )
-      );
-
-    const approvedByDate = new Map();
-
-    for (const slot of filteredApproved) {
-      if (!approvedByDate.has(slot.date)) {
-        approvedByDate.set(slot.date, []);
-      }
-      approvedByDate.get(slot.date).push(slot);
-    }
-
-    const uniqueScheduleDates = Array.from(
-      new Set(SCHEDULE_ROWS.map(([date]) => date))
-    ).sort();
-
-    return uniqueScheduleDates
-      .map((date) => {
-        const [year, month, day] = date.split("-").map(Number);
-        const displayDate = `${getMonthName(month - 1)} ${day}, ${year}`;
-        const items = approvedByDate.get(date) || [];
-
-        return {
-          date,
-          displayDate,
-          items,
-        };
-      })
-      .filter((group) => {
-        if (!q) return true;
-        return (
-          group.displayDate.toLowerCase().includes(q) || group.items.length > 0
-        );
-      });
-  }, [approvedSlots, calendarSearch]);
 
   const availabilityMonthDates = useMemo(() => {
     return buildMonthGrid(availabilityMonth);
@@ -492,8 +539,8 @@ export default function Page() {
     return openSlots
       .filter((slot) => slot.date === selectedDate)
       .sort((a, b) => {
-        const first = `${a.startTime}${a.location}`;
-        const second = `${b.startTime}${b.location}`;
+        const first = `${a.startTime}${a.slotLabel}${a.id}`;
+        const second = `${b.startTime}${b.slotLabel}${b.id}`;
         return first.localeCompare(second);
       });
   }, [openSlots, selectedDate]);
@@ -515,29 +562,21 @@ export default function Page() {
   }, [selectedDateSlots]);
 
   function updateForm(field, value) {
-  setForm((prev) => ({
-    ...prev,
-    [field]: value,
-  }));
-}
-
-      return {
-        ...prev,
-        [field]: value,
-      };
-    });
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   }
 
   function selectAvailabilitySlot(slot) {
-  setSelectedSlotId(String(slot.id));
-  setForm((prev) => ({
-    ...prev,
-    slotId: String(slot.id),
-    location: VENUE_NAME,
-  }));
-  setActiveTab("vendor");
-  document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
-}
+    setSelectedSlotId(String(slot.id));
+    setForm((prev) => ({
+      ...prev,
+      slotId: String(slot.id),
+    }));
+    setActiveTab("vendor");
+    document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
+  }
 
   async function submitBooking(e) {
     e.preventDefault();
@@ -551,11 +590,10 @@ export default function Page() {
       !form.truck ||
       !form.contactName ||
       !form.email ||
-      !form.cuisine ||
-      !form.location
+      !form.cuisine
     ) {
       setMessage(
-        "Please complete all required fields and choose a location and available slot."
+        "Please complete all required fields and choose an available shift."
       );
       return;
     }
@@ -573,9 +611,7 @@ export default function Page() {
     }
 
     if (isSlotBlockedByDateConflict(selectedSlot, slots)) {
-      setMessage(
-        "That slot is no longer available because a conflicting split or full-day request already exists."
-      );
+      setMessage("That shift is no longer available.");
       return;
     }
 
@@ -612,7 +648,7 @@ export default function Page() {
           slotLabel: selectedSlot.slotLabel,
           displayDate: selectedSlot.displayDate,
           displayTime: selectedSlot.displayTime,
-          location: selectedSlot.location,
+          location: VENUE_NAME,
         }),
       });
 
@@ -633,79 +669,78 @@ export default function Page() {
     setSelectedSlotId("");
   }
 
- async function approveSlot(slotId) {
-  const selected = slots.find((slot) => slot.id === slotId);
-  if (!selected) return;
+  async function approveSlot(slotId) {
+    const selected = slots.find((slot) => slot.id === slotId);
+    if (!selected) return;
 
-  const relatedIds = getRelatedSlotIds(selected, slots);
+    const relatedIds = getRelatedSlotIds(selected, slots);
 
-  const updatedSlots = slots.map((slot) => {
-    if (slot.id === slotId) {
-      return {
-        ...slot,
-        status: "approved",
-        notificationState: "sent",
-        depositRequested: false,
-        depositReceived: false,
-      };
-    }
-
-    if (
-      relatedIds.includes(slot.id) &&
-      slot.id !== slotId &&
-      slot.status === "pending" &&
-      selected.slotKind === "full-day"
-    ) {
-      return {
-        ...slot,
-        status: "declined",
-        adminNotes: "Declined due to approved full-day priority booking.",
-      };
-    }
-
-    return slot;
-  });
-
-  setSlots(updatedSlots);
-
-  const approvedSlot = updatedSlots.find((slot) => slot.id === slotId);
-
-  try {
-    const emailResponse = await fetch(
-      "/.netlify/functions/send-approval-email",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bookingId: approvedSlot.id,
-          truck: approvedSlot.truck,
-          contactName: approvedSlot.contactName,
-          email: approvedSlot.email,
-          phone: approvedSlot.phone,
-          cuisine: approvedSlot.cuisine,
-          slotLabel: approvedSlot.slotLabel,
-          displayDate: approvedSlot.displayDate,
-          displayTime: approvedSlot.displayTime,
-          location: approvedSlot.location,
-        }),
+    const updatedSlots = slots.map((slot) => {
+      if (slot.id === slotId) {
+        return {
+          ...slot,
+          status: "approved",
+          notificationState: "sent",
+        };
       }
-    );
 
-    const emailData = await emailResponse.json();
+      if (
+        relatedIds.includes(slot.id) &&
+        slot.id !== slotId &&
+        slot.status === "pending" &&
+        selected.slotKind === "full-day"
+      ) {
+        return {
+          ...slot,
+          status: "declined",
+          adminNotes: "Declined due to approved full-day priority booking.",
+        };
+      }
 
-    if (!emailResponse.ok) {
-      throw new Error(emailData.error || "Approval email failed");
+      return slot;
+    });
+
+    setSlots(updatedSlots);
+
+    const approvedSlot = updatedSlots.find((slot) => slot.id === slotId);
+
+    try {
+      const emailResponse = await fetch(
+        "/.netlify/functions/send-approval-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookingId: approvedSlot.id,
+            truck: approvedSlot.truck,
+            contactName: approvedSlot.contactName,
+            email: approvedSlot.email,
+            phone: approvedSlot.phone,
+            cuisine: approvedSlot.cuisine,
+            slotLabel: approvedSlot.slotLabel,
+            displayDate: approvedSlot.displayDate,
+            displayTime: approvedSlot.displayTime,
+            location: VENUE_NAME,
+          }),
+        }
+      );
+
+      const emailData = await emailResponse.json();
+
+      if (!emailResponse.ok) {
+        throw new Error(emailData.error || "Approval email failed");
+      }
+
+      setMessage(
+        `Booking approved. Approval email and text notification were sent to ${approvedSlot.email}.`
+      );
+    } catch (error) {
+      setMessage(`Booking approved, but follow-up failed: ${error.message}`);
     }
-
-    setMessage(
-      `Booking approved. Approval email and text notification were sent to ${approvedSlot.email}.`
-    );
-  } catch (error) {
-    setMessage(`Booking approved, but follow-up failed: ${error.message}`);
   }
-}
+
   function declineSlot(slotId) {
     setSlots((prev) =>
       prev.map((slot) => {
@@ -720,7 +755,6 @@ export default function Page() {
           email: null,
           phone: null,
           requirements: null,
-
           insuranceReceived: false,
           cancelReason: "",
           adminNotes: "",
@@ -729,7 +763,7 @@ export default function Page() {
       })
     );
 
-    setMessage("Booking request declined and slot reopened.");
+    setMessage("Booking request declined and shift reopened.");
   }
 
   function cancelReservation(slotId) {
@@ -750,7 +784,6 @@ export default function Page() {
           email: null,
           phone: null,
           requirements: null,
-
           insuranceReceived: false,
           cancelReason: reason,
           adminNotes: reason,
@@ -861,21 +894,22 @@ export default function Page() {
               <div className="hero-kicker">Seasonal Food Truck Reservations</div>
               <h1>Book your food truck at Wollaston Gardens.</h1>
               <p className="lead">
-                Request seasonal shifts, choose from multiple on-site locations,
-                and join the public calendar once your reservation is approved.
+                Request seasonal shifts, choose from multiple dates, and join the
+                public calendar once your reservation is approved.
               </p>
 
               <div className="cta-row">
                 <a href="#booking" className="btn btn-primary">
                   Request a Booking
                 </a>
-    
+                <a href="/why-wollaston-gardens" className="btn btn-primary">
+                  Why Wollaston Gardens
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
-
 
       <section id="booking" className="section">
         <div className="wrap">
@@ -956,41 +990,14 @@ export default function Page() {
                       </select>
                     </div>
 
-                   <div>
-  <label>Preferred shift *</label>
-  <select
-    value={form.slotId}
-    onChange={(e) => updateForm("slotId", e.target.value)}
-  >
-    <option value="">Choose an available shift</option>
-    {openSlots
-      .slice()
-      .sort((a, b) =>
-        `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`)
-      )
-      .map((slot) => (
-        <option key={slot.id} value={String(slot.id)}>
-          {slot.displayDate} • {slot.displayTime} • {slot.slotLabel}
-        </option>
-      ))}
-  </select>
-</div>
-                  </div>
-
-                  <div className="grid-two">
                     <div>
-                      <label>Preferred slot *</label>
+                      <label>Preferred shift *</label>
                       <select
                         value={form.slotId}
                         onChange={(e) => updateForm("slotId", e.target.value)}
-                        disabled={!form.location}
                       >
-                        <option value="">
-                          {form.location
-                            ? "Choose an available time slot"
-                            : "Select a location first"}
-                        </option>
-                        {locationFilteredOpenSlots
+                        <option value="">Choose an available shift</option>
+                        {openSlots
                           .slice()
                           .sort((a, b) =>
                             `${a.date}${a.startTime}`.localeCompare(
@@ -1024,10 +1031,13 @@ export default function Page() {
                       <strong>Operations:</strong> Power will be provided. Generators are not to be used during opening hours unless necessary.
                     </div>
                     <div>
-                      <strong>Insurance:</strong> Proof of insurance is required after approval, and must be provided within 48 hours or the reservation may be cancelled.
+                      <strong>Insurance:</strong> Proof of insurance is required after approval and must be provided within 48 hours or the reservation may be cancelled.
                     </div>
                     <div>
                       <strong>Vendor mix:</strong> Vendor mix is reviewed manually by admin.
+                    </div>
+                    <div>
+                      <strong>Capacity:</strong> A maximum of two vendors may be booked per shift.
                     </div>
                   </div>
 
@@ -1035,8 +1045,8 @@ export default function Page() {
                     <div className="strong-row">Vendor contract preview</div>
                     <p>
                       Vendor agrees to operate only during approved hours, comply with venue rules,
-                      submit required insurance, avoid unauthorized generator use, and report sales
-                      accurately for percentage rent.
+                      submit required insurance, avoid unauthorized generator use, and follow all
+                      event-day instructions from venue management.
                     </p>
 
                     <label className="check">
@@ -1070,39 +1080,39 @@ export default function Page() {
 
               <div className="stack">
                 <SectionCard
-  title="Booking Policies"
-  subtitle="Key information vendors need before requesting a reservation."
->
-  <div className="stack-sm">
-    <div className="note-box">
-      <strong>Scheduling</strong>
-      <div>
-        Shift approvals are based on availability, vendor mix, and admin review.
-      </div>
-    </div>
+                  title="Booking Policies"
+                  subtitle="Key information vendors need before requesting a reservation."
+                >
+                  <div className="stack-sm">
+                    <div className="note-box">
+                      <strong>Scheduling</strong>
+                      <div>
+                        Shift approvals are based on availability, vendor mix, and admin review.
+                      </div>
+                    </div>
 
-    <div className="note-box">
-      <strong>Full-day priority</strong>
-      <div>
-        Saturday and Sunday full-day requests have priority over split shifts when approved by admin.
-      </div>
-    </div>
+                    <div className="note-box">
+                      <strong>Full-day priority</strong>
+                      <div>
+                        Saturday and Sunday full-day requests have priority over split shifts when approved by admin.
+                      </div>
+                    </div>
 
-    <div className="note-box">
-      <strong>Utilities</strong>
-      <div>
-        Power is provided by the venue. Generators should only be used when necessary.
-      </div>
-    </div>
+                    <div className="note-box">
+                      <strong>Utilities</strong>
+                      <div>
+                        Power is provided by the venue. Generators should only be used when necessary.
+                      </div>
+                    </div>
 
-    <div className="note-box">
-      <strong>Approval + insurance</strong>
-      <div>
-        Admin approval is required before public listing. Insurance proof is required after approval.
-      </div>
-    </div>
-  </div>
-</SectionCard>
+                    <div className="note-box">
+                      <strong>Approval + insurance</strong>
+                      <div>
+                        Admin approval is required before public listing. Insurance proof is required after approval.
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
 
                 <div id="insurance-upload">
                   <SectionCard
@@ -1154,7 +1164,7 @@ export default function Page() {
             <div className="availability-layout">
               <SectionCard
                 title="Season Availability Calendar"
-                subtitle="Choose a date first. Then select a shift and location."
+                subtitle="Choose a date first. Then select a shift."
               >
                 <div className="calendar-toolbar">
                   <div>
@@ -1222,7 +1232,7 @@ export default function Page() {
                 }
                 subtitle={
                   selectedDate
-                    ? "Select a shift first, then choose one of the available locations."
+                    ? "Select a shift and choose one of the available spots."
                     : "Click a date on the calendar to view availability."
                 }
               >
@@ -1240,7 +1250,7 @@ export default function Page() {
                           <div>
                             <div className="calendar-name">{group.slotLabel}</div>
                             <div className="subtle">
-                              {group.displayTime} 
+                              {group.displayTime}
                             </div>
                           </div>
                           <span className="badge badge-open">
@@ -1248,18 +1258,18 @@ export default function Page() {
                           </span>
                         </div>
 
-                       <div className="location-chip-row">
-  {group.locations.map((slot, index) => (
-    <button
-      key={slot.id}
-      type="button"
-      className="location-chip"
-      onClick={() => selectAvailabilitySlot(slot)}
-    >
-      Spot {index + 1}
-    </button>
-  ))}
-</div>
+                        <div className="location-chip-row">
+                          {group.locations.map((slot, index) => (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              className="location-chip"
+                              onClick={() => selectAvailabilitySlot(slot)}
+                            >
+                              Spot {index + 1}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1269,7 +1279,6 @@ export default function Page() {
           )}
         </div>
       </section>
-
 
       <section id="admin" className="section">
         <div className="wrap two-col">
@@ -1335,8 +1344,7 @@ export default function Page() {
                   <div className="note-box">
                     Admin receives text and email notifications for all reservation requests.
                     Vendors are added to the public calendar immediately after admin approval.
-                    Admin can approve bookings, mark insurance
-                    received, and cancel any reservation at their discretion.
+                    Admin can approve bookings, mark insurance received, and cancel any reservation at their discretion.
                   </div>
 
                   <div className="note-box">
@@ -1378,15 +1386,12 @@ export default function Page() {
                                   <div>{slot.email}</div>
                                   <div>{slot.phone || "No phone provided"}</div>
                                   <div>{slot.cuisine || "Cuisine not specified"}</div>
-                                 
                                   <div>{slot.requirements || "No setup notes"}</div>
-                            
-                                
                                 </div>
 
                                 {conflicts.length > 0 ? (
                                   <div className="alert alert-warn">
-                                    <strong>Conflict notice:</strong> This request conflicts with {conflicts.length} split/full-day request(s). Full-day approvals take priority.
+                                    <strong>Conflict notice:</strong> This request conflicts with {conflicts.length} other request(s). Full-day approvals take priority.
                                   </div>
                                 ) : null}
                               </div>
@@ -1415,7 +1420,48 @@ export default function Page() {
                   <div>
                     <h4>Approved Reservations</h4>
 
-                   
+                    {approvedSlots.length === 0 ? (
+                      <div className="empty">No approved reservations yet.</div>
+                    ) : (
+                      <div className="stack">
+                        {approvedSlots.map((slot) => (
+                          <div key={slot.id} className="admin-card">
+                            <div className="admin-main">
+                              <div className="calendar-name">{slot.truck}</div>
+                              <div className="subtle">
+                                {slot.displayDate} • {slot.displayTime} • {slot.slotLabel}
+                              </div>
+
+                              <div className="admin-grid">
+                                <div>{slot.cuisine || "Cuisine not specified"}</div>
+                                <div>{slot.email}</div>
+                                <div>{slot.phone || "No phone provided"}</div>
+                                <div>Insurance received: {slot.insuranceReceived ? "Yes" : "No"}</div>
+                                <div>Cancel reason: {slot.cancelReason || "None"}</div>
+                              </div>
+                            </div>
+
+                            <div className="admin-actions">
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() =>
+                                  toggleApprovedFlag(slot.id, "insuranceReceived")
+                                }
+                              >
+                                {slot.insuranceReceived ? "Insurance Received" : "Mark Insurance Received"}
+                              </button>
+
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => cancelReservation(slot.id)}
+                              >
+                                Cancel Reservation
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </SectionCard>
