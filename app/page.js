@@ -7,12 +7,7 @@ const ADMIN_EMAIL = "info@thewollastongardens.com";
 const ADMIN_PHONE = "617 903 0736";
 
 
-const LOCATIONS = [
-  "Location 1",
-  "Location 2",
-  "Location 3",
-  "Location 4",
-];
+const MAX_BOOKINGS_PER_SHIFT = 2;
 
 const CUISINE_OPTIONS = [
   "American",
@@ -136,7 +131,7 @@ const emptyForm = {
   email: "",
   phone: "",
   cuisine: "",
-  location: "",
+  location: VENUE_NAME,
   requirements: "",
   slotId: "",
   acceptedContract: false,
@@ -186,138 +181,30 @@ function getMonthName(monthIndex) {
 
 
 
-function createSlotsFromSchedule() {
-  let id = 1;
-  const slots = [];
-
-  for (const [date, day] of SCHEDULE_ROWS) {
-    const [year, month, dayNumber] = date.split("-").map(Number);
-    const displayDate = `${getMonthName(month - 1)} ${dayNumber}, ${year}`;
-
-    for (const locationName of LOCATIONS) {
-      const base = {
-        date,
-        displayDate,
-        day,
-        location: locationName,
-        status: "open",
-        venueArea: `${VENUE_NAME} - ${locationName}`,
-        truck: null,
-        cuisine: null,
-        contactName: null,
-        email: null,
-        phone: null,
-        requirements: null,
-        insuranceReceived: false,
-        cancelReason: "",
-        adminNotes: "",
-        notificationState: "not-sent",
-      };
-
-      const pushSlot = (extra) => {
-        slots.push({
-          ...base,
-          id: id++,
-          ...extra,
-        });
-      };
-
-      if (day === "Thursday" || day === "Friday") {
-        pushSlot({
-          startTime: "16:00",
-          endTime: "21:00",
-          displayTime: "4:00 PM - 9:00 PM",
-          category: "Dinner",
-          slotKind: "standard",
-          slotLabel: "Dinner Shift",
-          durationHours: 5,
-        });
-        continue;
-      }
-
-      if (day === "Saturday") {
-        pushSlot({
-          startTime: "12:00",
-          endTime: "15:00",
-          displayTime: "12:00 PM - 3:00 PM",
-          category: "Lunch",
-          slotKind: "partial",
-          slotLabel: "Lunch Shift",
-          durationHours: 3,
-        });
-
-        pushSlot({
-          startTime: "16:00",
-          endTime: "21:00",
-          displayTime: "4:00 PM - 9:00 PM",
-          category: "Dinner",
-          slotKind: "partial",
-          slotLabel: "Dinner Shift",
-          durationHours: 5,
-        });
-
-        pushSlot({
-          startTime: "12:00",
-          endTime: "21:00",
-          displayTime: "12:00 PM - 9:00 PM",
-          category: "Full Day",
-          slotKind: "full-day",
-          slotLabel: "Full Day",
-          durationHours: 9,
-          priorityTier: "priority",
-        });
-
-        continue;
-      }
-
-      if (day === "Sunday") {
-        pushSlot({
-          startTime: "12:00",
-          endTime: "15:00",
-          displayTime: "12:00 PM - 3:00 PM",
-          category: "Lunch",
-          slotKind: "partial",
-          slotLabel: "Midday Shift",
-          durationHours: 3,
-        });
-
-        pushSlot({
-          startTime: "16:00",
-          endTime: "19:00",
-          displayTime: "4:00 PM - 7:00 PM",
-          category: "Dinner",
-          slotKind: "partial",
-          slotLabel: "Evening Shift",
-          durationHours: 3,
-        });
-
-        pushSlot({
-          startTime: "12:00",
-          endTime: "19:00",
-          displayTime: "12:00 PM - 7:00 PM",
-          category: "Full Day",
-          slotKind: "full-day",
-          slotLabel: "Full Day",
-          durationHours: 7,
-          priorityTier: "priority",
-        });
-      }
-    }
-  }
-
-  return slots;
-}
-
 function getRelatedSlotIds(slot, allSlots) {
-  if (!slot || !["Saturday", "Sunday"].includes(slot.day)) {
-    return slot ? [slot.id] : [];
-  }
+  if (!slot) return [];
 
   return allSlots
     .filter(
       (candidate) =>
         candidate.date === slot.date &&
-        candidate.location === slot.location
+        candidate.startTime === slot.startTime &&
+        candidate.endTime === slot.endTime &&
+        candidate.slotLabel === slot.slotLabel
+    )
+    .map((candidate) => candidate.id);
+}
+
+function getRelatedSlotIds(slot, allSlots) {
+  if (!slot) return [];
+
+  return allSlots
+    .filter(
+      (candidate) =>
+        candidate.date === slot.date &&
+        candidate.startTime === slot.startTime &&
+        candidate.endTime === slot.endTime &&
+        candidate.slotLabel === slot.slotLabel
     )
     .map((candidate) => candidate.id);
 }
@@ -325,12 +212,13 @@ function getRelatedSlotIds(slot, allSlots) {
 function isSlotBlockedByDateConflict(slot, allSlots) {
   const relatedIds = getRelatedSlotIds(slot, allSlots);
 
-  return allSlots.some(
+  const activeCount = allSlots.filter(
     (candidate) =>
       relatedIds.includes(candidate.id) &&
-      candidate.id !== slot.id &&
       ["pending", "approved"].includes(candidate.status)
-  );
+  ).length;
+
+  return activeCount >= MAX_BOOKINGS_PER_SHIFT;
 }
 
 function escapeICS(value = "") {
@@ -526,10 +414,7 @@ export default function Page() {
     [slots]
   );
 
-  const locationFilteredOpenSlots = useMemo(() => {
-    if (!form.location) return [];
-    return openSlots.filter((slot) => slot.location === form.location);
-  }, [openSlots, form.location]);
+  
 
   const pendingSlots = useMemo(
     () => slots.filter((slot) => slot.status === "pending"),
@@ -630,14 +515,11 @@ export default function Page() {
   }, [selectedDateSlots]);
 
   function updateForm(field, value) {
-    setForm((prev) => {
-      if (field === "location") {
-        return {
-          ...prev,
-          location: value,
-          slotId: "",
-        };
-      }
+  setForm((prev) => ({
+    ...prev,
+    [field]: value,
+  }));
+}
 
       return {
         ...prev,
@@ -647,15 +529,15 @@ export default function Page() {
   }
 
   function selectAvailabilitySlot(slot) {
-    setSelectedSlotId(String(slot.id));
-    setForm((prev) => ({
-      ...prev,
-      location: slot.location,
-      slotId: String(slot.id),
-    }));
-    setActiveTab("vendor");
-    document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
-  }
+  setSelectedSlotId(String(slot.id));
+  setForm((prev) => ({
+    ...prev,
+    slotId: String(slot.id),
+    location: VENUE_NAME,
+  }));
+  setActiveTab("vendor");
+  document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
+}
 
   async function submitBooking(e) {
     e.preventDefault();
@@ -1074,20 +956,25 @@ export default function Page() {
                       </select>
                     </div>
 
-                    <div>
-                      <label>Preferred location *</label>
-                      <select
-                        value={form.location}
-                        onChange={(e) => updateForm("location", e.target.value)}
-                      >
-                        <option value="">Select location</option>
-                        {LOCATIONS.map((location) => (
-                          <option key={location} value={location}>
-                            {location}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                   <div>
+  <label>Preferred shift *</label>
+  <select
+    value={form.slotId}
+    onChange={(e) => updateForm("slotId", e.target.value)}
+  >
+    <option value="">Choose an available shift</option>
+    {openSlots
+      .slice()
+      .sort((a, b) =>
+        `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`)
+      )
+      .map((slot) => (
+        <option key={slot.id} value={String(slot.id)}>
+          {slot.displayDate} • {slot.displayTime} • {slot.slotLabel}
+        </option>
+      ))}
+  </select>
+</div>
                   </div>
 
                   <div className="grid-two">
@@ -1357,22 +1244,22 @@ export default function Page() {
                             </div>
                           </div>
                           <span className="badge badge-open">
-                            {group.locations.length} location{group.locations.length === 1 ? "" : "s"}
+                            {group.locations.length} spot{group.locations.length === 1 ? "" : "s"}
                           </span>
                         </div>
 
-                        <div className="location-chip-row">
-                          {group.locations.map((slot) => (
-                            <button
-                              key={slot.id}
-                              type="button"
-                              className="location-chip"
-                              onClick={() => selectAvailabilitySlot(slot)}
-                            >
-                              {slot.location}
-                            </button>
-                          ))}
-                        </div>
+                       <div className="location-chip-row">
+  {group.locations.map((slot, index) => (
+    <button
+      key={slot.id}
+      type="button"
+      className="location-chip"
+      onClick={() => selectAvailabilitySlot(slot)}
+    >
+      Spot {index + 1}
+    </button>
+  ))}
+</div>
                       </div>
                     ))}
                   </div>
@@ -1484,14 +1371,14 @@ export default function Page() {
                               <div className="admin-main">
                                 <div className="calendar-name">{slot.truck}</div>
                                 <div className="subtle">
-                                  {slot.displayDate} • {slot.location} • {slot.displayTime} • {slot.slotLabel}
+                                  {slot.displayDate} • {slot.displayTime} • {slot.slotLabel}
                                 </div>
 
                                 <div className="admin-grid">
                                   <div>{slot.email}</div>
                                   <div>{slot.phone || "No phone provided"}</div>
                                   <div>{slot.cuisine || "Cuisine not specified"}</div>
-                                  <div>{slot.location}</div>
+                                 
                                   <div>{slot.requirements || "No setup notes"}</div>
                             
                                 
