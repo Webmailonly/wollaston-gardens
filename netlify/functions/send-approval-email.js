@@ -1,3 +1,70 @@
+function normalizePhoneNumber(phone) {
+  if (!phone) return "";
+
+  const raw = String(phone).trim();
+  if (raw.startsWith("+")) return raw;
+
+  const cleaned = raw.replace(/\D/g, "");
+
+  if (cleaned.length === 10) return `+1${cleaned}`;
+  if (cleaned.length === 11 && cleaned.startsWith("1")) return `+${cleaned}`;
+
+  return "";
+}
+
+async function sendEmail({ apiKey, from, to, subject, html }) {
+  if (!apiKey || !from || !to) {
+    return { ok: false, reason: "missing_email_config", to };
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from, to, subject, html }),
+  });
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    to,
+    response: await response.text(),
+  };
+}
+
+async function sendSms({ sid, token, from, to, body }) {
+  if (!sid || !token || !from || !to) {
+    return { ok: false, reason: "missing_sms_config", to };
+  }
+
+  const auth = Buffer.from(`${sid}:${token}`).toString("base64");
+
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        From: from,
+        To: to,
+        Body: body,
+      }),
+    }
+  );
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    to,
+    response: await response.text(),
+  };
+}
+
 exports.handler = async (event) => {
   try {
     if (event.httpMethod !== "POST") {
@@ -7,133 +74,111 @@ exports.handler = async (event) => {
       };
     }
 
-    const body = JSON.parse(event.body || "{}");
-
-    const {
-      bookingId,
-      truck,
-      contactName,
-      email,
-      phone,
-      cuisine,
-      slotLabel,
-      displayDate,
-      displayTime,
-      location,
-      depositText,
-      paymentLink,
-    } = body;
+    const data = JSON.parse(event.body || "{}");
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL;
-    const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || "";
 
-    if (!resendApiKey) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Missing RESEND_API_KEY" }),
-      };
-    }
+    const adminEmail =
+      process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
 
-    if (!fromEmail) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Missing FROM_EMAIL" }),
-      };
-    }
+    const adminPhone = normalizePhoneNumber(
+      process.env.ADMIN_PHONE_NUMBER ||
+        process.env.ADMIN_PHONE ||
+        "+16179030736"
+    );
 
-    if (!email) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Missing vendor email" }),
-      };
-    }
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+    const twilioFrom = normalizePhoneNumber(process.env.TWILIO_FROM_NUMBER);
 
-    const insuranceUploadLink = bookingId
-      ? `${siteUrl}/?insurance=1&bookingId=${encodeURIComponent(
-          bookingId
-        )}#insurance-upload`
-      : `${siteUrl}/#insurance-upload`;
+    const vendorPhone = normalizePhoneNumber(data.phone);
 
     const vendorHtml = `
-      <h2>Your Booking Has Been Approved</h2>
-      <p>Hello ${contactName || "Vendor"},</p>
-      <p>Your booking for <strong>Wollaston Gardens</strong> has been approved.</p>
-      <p><strong>Truck:</strong> ${truck || ""}</p>
-      <p><strong>Cuisine:</strong> ${cuisine || ""}</p>
-      <p><strong>Date:</strong> ${displayDate || ""}</p>
-      <p><strong>Location:</strong> ${location || ""}</p>
-      <p><strong>Shift:</strong> ${displayTime || ""} (${slotLabel || ""})</p>
-      <p><strong>Deposit:</strong> ${depositText || ""}</p>
-      ${
-        paymentLink
-          ? `<p><a href="${paymentLink}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;">Pay Deposit</a></p>`
-          : `<p>Please contact admin for your deposit payment link.</p>`
-      }
-      <p><strong>Insurance upload:</strong> After deposit payment, please upload your proof of insurance using the button below.</p>
-      <p><a href="${insuranceUploadLink}" style="display:inline-block;padding:12px 18px;background:#ffffff;color:#0f172a;text-decoration:none;border:1px solid #cbd5e1;border-radius:8px;">Upload Insurance</a></p>
-      <p>Your booking ID is: <strong>${bookingId || ""}</strong></p>
-      <p>Thank you.</p>
+      <h2>Your booking has been approved</h2>
+      <p>Hello ${data.contactName || data.truck || "there"},</p>
+      <p>Your Wollaston Gardens booking request has been approved.</p>
+      <p><strong>Booking ID:</strong> ${data.bookingId || ""}</p>
+      <p><strong>Truck:</strong> ${data.truck || ""}</p>
+      <p><strong>Date:</strong> ${data.displayDate || ""}</p>
+      <p><strong>Time:</strong> ${data.displayTime || ""}</p>
+      <p><strong>Shift:</strong> ${data.slotLabel || ""}</p>
+      <p><strong>Cuisine:</strong> ${data.cuisine || ""}</p>
+      <p>Please upload proof of insurance within 48 hours using the upload section on the vendor site.</p>
+      <p>Thank you,<br />Wollaston Gardens</p>
     `;
 
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const adminHtml = `
+      <h2>Booking Approved</h2>
+      <p><strong>Truck:</strong> ${data.truck || ""}</p>
+      <p><strong>Contact:</strong> ${data.contactName || ""}</p>
+      <p><strong>Email:</strong> ${data.email || ""}</p>
+      <p><strong>Phone:</strong> ${data.phone || ""}</p>
+      <p><strong>Cuisine:</strong> ${data.cuisine || ""}</p>
+      <p><strong>Date:</strong> ${data.displayDate || ""}</p>
+      <p><strong>Time:</strong> ${data.displayTime || ""}</p>
+      <p><strong>Shift:</strong> ${data.slotLabel || ""}</p>
+    `;
+
+    const results = [];
+
+    if (data.email) {
+      results.push({
+        type: "vendor_approval_email",
+        ...(await sendEmail({
+          apiKey: resendApiKey,
+          from: fromEmail,
+          to: data.email,
+          subject: "Your Wollaston Gardens booking has been approved",
+          html: vendorHtml,
+        })),
+      });
+    }
+
+    results.push({
+      type: "admin_approval_email",
+      ...(await sendEmail({
+        apiKey: resendApiKey,
         from: fromEmail,
-        to: email,
-        subject: `Booking approved - ${displayDate || ""} - Wollaston Gardens`,
-        html: vendorHtml,
-      }),
+        to: adminEmail,
+        subject: `Booking Approved - ${data.truck || "Vendor"}`,
+        html: adminHtml,
+      })),
     });
 
-    const emailData = await emailResponse.json();
-
-    if (!emailResponse.ok) {
-      throw new Error(emailData?.message || "Failed to send approval email");
+    if (vendorPhone) {
+      results.push({
+        type: "vendor_approval_sms",
+        ...(await sendSms({
+          sid: twilioSid,
+          token: twilioToken,
+          from: twilioFrom,
+          to: vendorPhone,
+          body: `Your Wollaston Gardens booking for ${data.displayDate || ""} ${data.displayTime || ""} has been approved. Please upload proof of insurance within 48 hours.`,
+        })),
+      });
     }
 
-    const sid = process.env.TWILIO_ACCOUNT_SID;
-    const token = process.env.TWILIO_AUTH_TOKEN;
-    const from = process.env.TWILIO_FROM_NUMBER;
-
-    if (phone && sid && token && from) {
-      const auth = Buffer.from(`${sid}:${token}`).toString("base64");
-
-      const smsResponse = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${auth}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            From: from,
-            To: phone,
-            Body: `Your Wollaston Gardens booking is approved for ${displayDate} ${displayTime} at ${location}. Check your email for deposit and insurance instructions.`,
-          }),
-        }
-      );
-
-      if (!smsResponse.ok) {
-        const smsText = await smsResponse.text();
-        throw new Error(`Approval SMS failed: ${smsText}`);
-      }
-    }
+    results.push({
+      type: "admin_approval_sms",
+      ...(await sendSms({
+        sid: twilioSid,
+        token: twilioToken,
+        from: twilioFrom,
+        to: adminPhone,
+        body: `Booking approved: ${data.truck || "Vendor"} for ${data.displayDate || ""} ${data.displayTime || ""}.`,
+      })),
+    });
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true }),
+      body: JSON.stringify({ success: true, results }),
     };
   } catch (error) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: error.message || "Unknown server error",
+        error: error.message || "Approval notification failed",
       }),
     };
   }
