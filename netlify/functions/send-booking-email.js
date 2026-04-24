@@ -26,13 +26,11 @@ async function sendEmail({ apiKey, from, to, subject, html }) {
     body: JSON.stringify({ from, to, subject, html }),
   });
 
-  const text = await response.text();
-
   return {
     ok: response.ok,
     status: response.status,
     to,
-    response: text,
+    response: await response.text(),
   };
 }
 
@@ -59,42 +57,25 @@ async function sendSms({ sid, token, from, to, body }) {
     }
   );
 
-  const text = await response.text();
-
   return {
     ok: response.ok,
     status: response.status,
     to,
-    response: text,
+    response: await response.text(),
   };
 }
 
 exports.handler = async (event) => {
   try {
     if (event.httpMethod !== "POST") {
-      return {
-        statusCode: 405,
-        body: JSON.stringify({ error: "Method not allowed" }),
-      };
+      return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
     }
 
-    const {
-      truck,
-      contactName,
-      email,
-      phone,
-      cuisine,
-      requirements,
-      slotLabel,
-      displayDate,
-      displayTime,
-      location,
-    } = JSON.parse(event.body || "{}");
+    const data = JSON.parse(event.body || "{}");
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL;
-    const adminEmail =
-      process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
+    const adminEmail = process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
 
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
@@ -104,35 +85,29 @@ exports.handler = async (event) => {
       process.env.ADMIN_PHONE_NUMBER || process.env.ADMIN_PHONE
     );
 
-    const vendorPhone = normalizePhoneNumber(phone);
+    const vendorPhone = normalizePhoneNumber(data.phone);
 
     const adminHtml = `
       <h2>New Booking Request</h2>
-      <p><strong>Truck:</strong> ${truck || ""}</p>
-      <p><strong>Contact:</strong> ${contactName || ""}</p>
-      <p><strong>Email:</strong> ${email || ""}</p>
-      <p><strong>Phone:</strong> ${phone || ""}</p>
-      <p><strong>Cuisine:</strong> ${cuisine || ""}</p>
-      <p><strong>Date:</strong> ${displayDate || ""}</p>
-      <p><strong>Time:</strong> ${displayTime || ""}</p>
-      <p><strong>Shift:</strong> ${slotLabel || ""}</p>
-      <p><strong>Location:</strong> ${location || "Wollaston Gardens"}</p>
-      <p><strong>Notes:</strong> ${requirements || "None"}</p>
+      <p><strong>Truck:</strong> ${data.truck || ""}</p>
+      <p><strong>Contact:</strong> ${data.contactName || ""}</p>
+      <p><strong>Email:</strong> ${data.email || ""}</p>
+      <p><strong>Phone:</strong> ${data.phone || ""}</p>
+      <p><strong>Cuisine:</strong> ${data.cuisine || ""}</p>
+      <p><strong>Date:</strong> ${data.displayDate || ""}</p>
+      <p><strong>Time:</strong> ${data.displayTime || ""}</p>
+      <p><strong>Shift:</strong> ${data.slotLabel || ""}</p>
+      <p><strong>Notes:</strong> ${data.requirements || "None"}</p>
     `;
 
     const vendorHtml = `
       <h2>We received your booking request</h2>
-      <p>Hello ${contactName || truck || "there"},</p>
-      <p>Thank you for submitting a booking request for Wollaston Gardens.</p>
-      <p>Your request has been received and is pending admin approval.</p>
-      <h3>Request Details</h3>
-      <p><strong>Truck:</strong> ${truck || ""}</p>
-      <p><strong>Date:</strong> ${displayDate || ""}</p>
-      <p><strong>Time:</strong> ${displayTime || ""}</p>
-      <p><strong>Shift:</strong> ${slotLabel || ""}</p>
-      <p><strong>Cuisine:</strong> ${cuisine || ""}</p>
+      <p>Hello ${data.contactName || data.truck || "there"},</p>
+      <p>Your Wollaston Gardens booking request has been received and is pending approval.</p>
+      <p><strong>Date:</strong> ${data.displayDate || ""}</p>
+      <p><strong>Time:</strong> ${data.displayTime || ""}</p>
+      <p><strong>Shift:</strong> ${data.slotLabel || ""}</p>
       <p>You will receive another notification once your request has been reviewed.</p>
-      <p>Thank you,<br />Wollaston Gardens</p>
     `;
 
     const results = [];
@@ -143,18 +118,18 @@ exports.handler = async (event) => {
         apiKey: resendApiKey,
         from: fromEmail,
         to: adminEmail,
-        subject: `New Booking Request - ${truck || "Vendor"}`,
+        subject: `New Booking Request - ${data.truck || "Vendor"}`,
         html: adminHtml,
       })),
     });
 
-    if (email) {
+    if (data.email) {
       results.push({
         type: "vendor_email",
         ...(await sendEmail({
           apiKey: resendApiKey,
           from: fromEmail,
-          to: email,
+          to: data.email,
           subject: "Your Wollaston Gardens booking request was received",
           html: vendorHtml,
         })),
@@ -168,7 +143,7 @@ exports.handler = async (event) => {
         token: twilioToken,
         from: twilioFrom,
         to: adminPhone,
-        body: `New Wollaston Gardens booking request: ${truck || "Vendor"} for ${displayDate || ""} ${displayTime || ""}.`,
+        body: `New Wollaston Gardens booking request: ${data.truck || "Vendor"} for ${data.displayDate || ""} ${data.displayTime || ""}.`,
       })),
     });
 
@@ -180,31 +155,19 @@ exports.handler = async (event) => {
           token: twilioToken,
           from: twilioFrom,
           to: vendorPhone,
-          body: `Wollaston Gardens received your booking request for ${displayDate || ""} ${displayTime || ""}. Your request is pending approval.`,
+          body: `Wollaston Gardens received your booking request for ${data.displayDate || ""} ${data.displayTime || ""}. Your request is pending approval.`,
         })),
-      });
-    } else {
-      results.push({
-        type: "vendor_sms",
-        ok: false,
-        reason: "invalid_vendor_phone",
-        originalPhone: phone || "",
       });
     }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        success: true,
-        results,
-      }),
+      body: JSON.stringify({ success: true, results }),
     };
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: error.message || "Notification failed",
-      }),
+      body: JSON.stringify({ error: error.message || "Notification failed" }),
     };
   }
 };
