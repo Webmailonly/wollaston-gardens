@@ -78,19 +78,18 @@ exports.handler = async (event) => {
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL;
-
     const adminEmail =
       process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
+
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+    const twilioFrom = normalizePhoneNumber(process.env.TWILIO_FROM_NUMBER);
 
     const adminPhone = normalizePhoneNumber(
       process.env.ADMIN_PHONE_NUMBER ||
         process.env.ADMIN_PHONE ||
         "+16179030736"
     );
-
-    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-    const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-    const twilioFrom = normalizePhoneNumber(process.env.TWILIO_FROM_NUMBER);
 
     const vendorPhone = normalizePhoneNumber(data.phone);
 
@@ -115,7 +114,6 @@ exports.handler = async (event) => {
       <p><strong>Time:</strong> ${data.displayTime || ""}</p>
       <p><strong>Shift:</strong> ${data.slotLabel || ""}</p>
       <p>You will receive another notification once your request has been reviewed.</p>
-      <p>Thank you,<br />Wollaston Gardens</p>
     `;
 
     const results = [];
@@ -168,20 +166,20 @@ exports.handler = async (event) => {
       });
     }
 
-    console.log("NOTIFICATION RESULTS:", JSON.stringify(results, null, 2));
+    console.log("BOOKING NOTIFICATION RESULTS:", JSON.stringify(results, null, 2));
 
-return {
-  statusCode: 200,
-  body: JSON.stringify({ success: true, results }),
-};
- catch (error) {
-  console.error("NOTIFICATION ERROR:", error);
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: true, results }),
+    };
+  } catch (error) {
+    console.error("BOOKING NOTIFICATION ERROR:", error);
 
-  return {
-    statusCode: 500,
-    body: JSON.stringify({
-      error: error.message || "Notification failed",
-    }),
-  };
-}
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: error.message || "Notification failed",
+      }),
+    };
+  }
 };
