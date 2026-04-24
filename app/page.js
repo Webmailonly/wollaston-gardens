@@ -472,11 +472,44 @@ export default function Page() {
   const [insuranceMessage, setInsuranceMessage] = useState("");
 
   useEffect(() => {
-    (async () => {
-      const saved = await loadState();
-      if (saved?.slots) setSlots(saved.slots);
-    })();
-  }, []);
+  (async () => {
+    const saved = await loadState();
+    const freshSlots = createSlotsFromSchedule();
+
+    if (saved?.slots && Array.isArray(saved.slots) && saved.slots.length > 0) {
+      const bookedSlots = saved.slots.filter((slot) =>
+        ["pending", "approved"].includes(slot.status)
+      );
+
+      const mergedSlots = [...freshSlots];
+
+      for (const booked of bookedSlots) {
+        const matchIndex = mergedSlots.findIndex(
+          (slot) =>
+            slot.status === "open" &&
+            slot.date === booked.date &&
+            slot.startTime === booked.startTime &&
+            slot.endTime === booked.endTime &&
+            slot.slotLabel === booked.slotLabel
+        );
+
+        if (matchIndex !== -1) {
+          mergedSlots[matchIndex] = {
+            ...mergedSlots[matchIndex],
+            ...booked,
+            id: mergedSlots[matchIndex].id,
+          };
+        }
+      }
+
+      setSlots(mergedSlots);
+    } else {
+      setSlots(freshSlots);
+    }
+
+    setHasLoadedBookings(true);
+  })();
+}, []);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("wg_admin_auth");
