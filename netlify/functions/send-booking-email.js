@@ -168,16 +168,20 @@ exports.handler = async (event) => {
       });
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true, results }),
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: error.message || "Notification failed",
-      }),
-    };
-  }
+    console.log("NOTIFICATION RESULTS:", JSON.stringify(results, null, 2));
+
+return {
+  statusCode: 200,
+  body: JSON.stringify({ success: true, results }),
+};
+ catch (error) {
+  console.error("NOTIFICATION ERROR:", error);
+
+  return {
+    statusCode: 500,
+    body: JSON.stringify({
+      error: error.message || "Notification failed",
+    }),
+  };
+}
 };
