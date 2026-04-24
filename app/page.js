@@ -1004,6 +1004,11 @@ export default function Page() {
                         onChange={(e) => updateForm("phone", e.target.value)}
                         placeholder="(555) 555-5555"
                       />
+                          <div style={{ fontSize: "12px", color: "#666", marginTop: "6px" }}>
+  By providing your phone number, you agree to receive SMS notifications from
+  Wollaston Gardens regarding your booking request. Message and data rates may
+  apply. Reply STOP to unsubscribe.
+</div>
                     </div>
                   </div>
 
