@@ -688,15 +688,17 @@ export default function Page() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Email sending failed");
+       throw new Error(
+  result.error || JSON.stringify(result) || "Notification sending failed"
+);
       }
 
       setMessage(
         `Booking request submitted. Email notifications sent to ${ADMIN_EMAIL} and ${form.email}.`
       );
-    } catch {
-      setMessage("Booking request saved, but email sending failed.");
-    }
+    } catch (error) {
+  setMessage(`Booking request saved, but notification failed: ${error.message}`);
+}
 
     setForm(emptyForm);
     setSelectedSlotId("");
