@@ -3,24 +3,21 @@ const { getStore } = require("@netlify/blobs");
 exports.handler = async (event) => {
   try {
     if (event.httpMethod !== "POST") {
-      return {
-        statusCode: 405,
-        body: JSON.stringify({ error: "Method not allowed" }),
-      };
+      return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
     }
 
     const body = JSON.parse(event.body || "{}");
-    const slots = body.slots;
 
-    if (!Array.isArray(slots)) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Invalid slots payload" }),
-      };
+    if (!Array.isArray(body.slots)) {
+      return { statusCode: 400, body: JSON.stringify({ error: "Missing slots array" }) };
     }
 
     const store = getStore("wollaston-bookings");
-    await store.setJSON("slots", slots);
+
+    await store.setJSON("bookings", {
+      slots: body.slots,
+      updatedAt: new Date().toISOString(),
+    });
 
     return {
       statusCode: 200,
@@ -29,7 +26,7 @@ exports.handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error.message || "Failed to save bookings" }),
+      body: JSON.stringify({ error: error.message || "Save failed" }),
     };
   }
 };
