@@ -1,21 +1,72 @@
 function normalizePhoneNumber(phone) {
   if (!phone) return "";
 
-  const cleaned = String(phone).replace(/\D/g, "");
+  const raw = String(phone).trim();
+  if (raw.startsWith("+")) return raw;
 
-  if (cleaned.length === 10) {
-    return `+1${cleaned}`;
-  }
+  const cleaned = raw.replace(/\D/g, "");
 
-  if (cleaned.length === 11 && cleaned.startsWith("1")) {
-    return `+${cleaned}`;
-  }
-
-  if (String(phone).startsWith("+")) {
-    return String(phone);
-  }
+  if (cleaned.length === 10) return `+1${cleaned}`;
+  if (cleaned.length === 11 && cleaned.startsWith("1")) return `+${cleaned}`;
 
   return "";
+}
+
+async function sendEmail({ apiKey, from, to, subject, html }) {
+  if (!apiKey || !from || !to) {
+    return { ok: false, reason: "missing_email_config", to };
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from, to, subject, html }),
+  });
+
+  const text = await response.text();
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    to,
+    response: text,
+  };
+}
+
+async function sendSms({ sid, token, from, to, body }) {
+  if (!sid || !token || !from || !to) {
+    return { ok: false, reason: "missing_sms_config", to };
+  }
+
+  const auth = Buffer.from(`${sid}:${token}`).toString("base64");
+
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        From: from,
+        To: to,
+        Body: body,
+      }),
+    }
+  );
+
+  const text = await response.text();
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    to,
+    response: text,
+  };
 }
 
 exports.handler = async (event) => {
@@ -42,15 +93,20 @@ exports.handler = async (event) => {
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL;
-    const adminEmail = process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
+    const adminEmail =
+      process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
 
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-    const twilioFrom = process.env.TWILIO_FROM_NUMBER;
-    const adminPhone = normalizePhoneNumber(process.env.ADMIN_PHONE_NUMBER);
+    const twilioFrom = normalizePhoneNumber(process.env.TWILIO_FROM_NUMBER);
+
+    const adminPhone = normalizePhoneNumber(
+      process.env.ADMIN_PHONE_NUMBER || process.env.ADMIN_PHONE
+    );
+
     const vendorPhone = normalizePhoneNumber(phone);
 
-    const bookingSummary = `
+    const adminHtml = `
       <h2>New Booking Request</h2>
       <p><strong>Truck:</strong> ${truck || ""}</p>
       <p><strong>Contact:</strong> ${contactName || ""}</p>
@@ -69,126 +125,71 @@ exports.handler = async (event) => {
       <p>Hello ${contactName || truck || "there"},</p>
       <p>Thank you for submitting a booking request for Wollaston Gardens.</p>
       <p>Your request has been received and is pending admin approval.</p>
-
       <h3>Request Details</h3>
       <p><strong>Truck:</strong> ${truck || ""}</p>
       <p><strong>Date:</strong> ${displayDate || ""}</p>
       <p><strong>Time:</strong> ${displayTime || ""}</p>
       <p><strong>Shift:</strong> ${slotLabel || ""}</p>
       <p><strong>Cuisine:</strong> ${cuisine || ""}</p>
-
       <p>You will receive another notification once your request has been reviewed.</p>
       <p>Thank you,<br />Wollaston Gardens</p>
     `;
 
     const results = [];
 
-    if (resendApiKey && fromEmail) {
-      const adminEmailResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: adminEmail,
-          subject: `New Booking Request - ${truck || "Vendor"}`,
-          html: bookingSummary,
-        }),
-      });
+    results.push({
+      type: "admin_email",
+      ...(await sendEmail({
+        apiKey: resendApiKey,
+        from: fromEmail,
+        to: adminEmail,
+        subject: `New Booking Request - ${truck || "Vendor"}`,
+        html: adminHtml,
+      })),
+    });
 
+    if (email) {
       results.push({
-        type: "admin_email",
-        ok: adminEmailResponse.ok,
-        status: adminEmailResponse.status,
+        type: "vendor_email",
+        ...(await sendEmail({
+          apiKey: resendApiKey,
+          from: fromEmail,
+          to: email,
+          subject: "Your Wollaston Gardens booking request was received",
+          html: vendorHtml,
+        })),
       });
-
-      if (email) {
-        const vendorEmailResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: fromEmail,
-            to: email,
-            subject: "Your Wollaston Gardens booking request was received",
-            html: vendorHtml,
-          }),
-        });
-
-        results.push({
-          type: "vendor_email",
-          ok: vendorEmailResponse.ok,
-          status: vendorEmailResponse.status,
-        });
-      }
     }
 
-    if (twilioSid && twilioToken && twilioFrom) {
-      const auth = Buffer.from(`${twilioSid}:${twilioToken}`).toString("base64");
+    results.push({
+      type: "admin_sms",
+      ...(await sendSms({
+        sid: twilioSid,
+        token: twilioToken,
+        from: twilioFrom,
+        to: adminPhone,
+        body: `New Wollaston Gardens booking request: ${truck || "Vendor"} for ${displayDate || ""} ${displayTime || ""}.`,
+      })),
+    });
 
-      if (adminPhone) {
-        const adminText = `New Wollaston Gardens booking request: ${truck || "Vendor"} for ${displayDate || ""} ${displayTime || ""}. Check admin dashboard.`;
-
-        const adminSmsResponse = await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Basic ${auth}`,
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-              From: twilioFrom,
-              To: adminPhone,
-              Body: adminText,
-            }),
-          }
-        );
-
-        results.push({
-          type: "admin_sms",
-          ok: adminSmsResponse.ok,
-          status: adminSmsResponse.status,
-        });
-      }
-
-      if (vendorPhone) {
-        const vendorText = `Wollaston Gardens received your booking request for ${displayDate || ""} ${displayTime || ""}. Your request is pending approval.`;
-
-        const vendorSmsResponse = await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Basic ${auth}`,
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-              From: twilioFrom,
-              To: vendorPhone,
-              Body: vendorText,
-            }),
-          }
-        );
-
-        results.push({
-          type: "vendor_sms",
-          ok: vendorSmsResponse.ok,
-          status: vendorSmsResponse.status,
+    if (vendorPhone) {
+      results.push({
+        type: "vendor_sms",
+        ...(await sendSms({
+          sid: twilioSid,
+          token: twilioToken,
+          from: twilioFrom,
           to: vendorPhone,
-        });
-      } else if (phone) {
-        results.push({
-          type: "vendor_sms",
-          ok: false,
-          status: "invalid_phone",
-          originalPhone: phone,
-        });
-      }
+          body: `Wollaston Gardens received your booking request for ${displayDate || ""} ${displayTime || ""}. Your request is pending approval.`,
+        })),
+      });
+    } else {
+      results.push({
+        type: "vendor_sms",
+        ok: false,
+        reason: "invalid_vendor_phone",
+        originalPhone: phone || "",
+      });
     }
 
     return {
