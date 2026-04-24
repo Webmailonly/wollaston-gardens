@@ -68,27 +68,34 @@ async function sendSms({ sid, token, from, to, body }) {
 exports.handler = async (event) => {
   try {
     if (event.httpMethod !== "POST") {
-      return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
+      return {
+        statusCode: 405,
+        body: JSON.stringify({ error: "Method not allowed" }),
+      };
     }
 
     const data = JSON.parse(event.body || "{}");
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL;
-    const adminEmail = process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
+
+    const adminEmail =
+      process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
+
+    const adminPhone = normalizePhoneNumber(
+      process.env.ADMIN_PHONE_NUMBER ||
+        process.env.ADMIN_PHONE ||
+        "+16179030736"
+    );
 
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioFrom = normalizePhoneNumber(process.env.TWILIO_FROM_NUMBER);
 
-    const adminPhone = normalizePhoneNumber(
-      process.env.ADMIN_PHONE_NUMBER || process.env.ADMIN_PHONE
-    );
-
     const vendorPhone = normalizePhoneNumber(data.phone);
 
     const adminHtml = `
-      <h2>New Booking Request</h2>
+      <h2>New Wollaston Gardens Booking Request</h2>
       <p><strong>Truck:</strong> ${data.truck || ""}</p>
       <p><strong>Contact:</strong> ${data.contactName || ""}</p>
       <p><strong>Email:</strong> ${data.email || ""}</p>
@@ -108,6 +115,7 @@ exports.handler = async (event) => {
       <p><strong>Time:</strong> ${data.displayTime || ""}</p>
       <p><strong>Shift:</strong> ${data.slotLabel || ""}</p>
       <p>You will receive another notification once your request has been reviewed.</p>
+      <p>Thank you,<br />Wollaston Gardens</p>
     `;
 
     const results = [];
@@ -167,7 +175,9 @@ exports.handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error.message || "Notification failed" }),
+      body: JSON.stringify({
+        error: error.message || "Notification failed",
+      }),
     };
   }
 };
