@@ -3,18 +3,22 @@ const { getStore } = require("@netlify/blobs");
 exports.handler = async () => {
   try {
     const store = getStore("wollaston-bookings");
-    const data = await store.get("slots", { type: "json" });
+    const data = await store.get("bookings", { type: "json" });
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        slots: data || null,
+        slots: data?.slots || [],
+        updatedAt: data?.updatedAt || null,
       }),
     };
   } catch (error) {
     return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message || "Failed to load bookings" }),
+      statusCode: 200,
+      body: JSON.stringify({
+        slots: [],
+        error: error.message || "Load failed",
+      }),
     };
   }
 };
