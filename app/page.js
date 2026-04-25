@@ -1317,7 +1317,36 @@ export default function Page() {
           )}
         </div>
       </section>
+<div style={{
+  marginTop: "40px",
+  paddingTop: "20px",
+  borderTop: "1px solid #e5e5e5",
+  display: "flex",
+  justifyContent: "center",
+  gap: "20px",
+  fontSize: "13px",
+  color: "#666"
+}}>
+  <a
+    href="https://www.thewollastongardens.com/privacy"
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ textDecoration: "none", color: "#666" }}
+  >
+    Privacy Policy
+  </a>
 
+  <span>|</span>
+
+  <a
+    href="https://www.thewollastongardens.com/terms"
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ textDecoration: "none", color: "#666" }}
+  >
+    Terms & Conditions
+  </a>
+</div>
       <section id="admin" className="section">
         <div className="wrap two-col">
           {!isAdmin ? (
