@@ -1,5 +1,13 @@
 const { getStore } = require("@netlify/blobs");
 
+function getBookingsStore() {
+  return getStore({
+    name: "wollaston-bookings",
+    siteID: process.env.NETLIFY_SITE_ID,
+    token: process.env.NETLIFY_AUTH_TOKEN,
+  });
+}
+
 exports.handler = async (event) => {
   try {
     if (event.httpMethod !== "POST") {
@@ -18,7 +26,7 @@ exports.handler = async (event) => {
       };
     }
 
-    const store = getStore("wollaston-bookings");
+    const store = getBookingsStore();
 
     await store.setJSON("bookings", {
       slots: body.slots,
