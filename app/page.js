@@ -1328,7 +1328,7 @@ export default function Page() {
   color: "#666"
 }}>
   <a
-    href="https://www.thewollastongardens.com/privacy"
+    href="https://www.thewollastongardens.com/privacy-policy"
     target="_blank"
     rel="noopener noreferrer"
     style={{ textDecoration: "none", color: "#666" }}
@@ -1339,7 +1339,7 @@ export default function Page() {
   <span>|</span>
 
   <a
-    href="https://www.thewollastongardens.com/terms"
+    href="https://www.thewollastongardens.com/terms-conditions"
     target="_blank"
     rel="noopener noreferrer"
     style={{ textDecoration: "none", color: "#666" }}
