@@ -26,11 +26,13 @@ async function sendEmail({ apiKey, from, to, subject, html }) {
     body: JSON.stringify({ from, to, subject, html }),
   });
 
+  const responseText = await response.text();
+
   return {
     ok: response.ok,
     status: response.status,
     to,
-    response: await response.text(),
+    response: responseText,
   };
 }
 
@@ -57,15 +59,17 @@ async function sendSms({ sid, token, from, to, body }) {
     }
   );
 
+  const responseText = await response.text();
+
   return {
     ok: response.ok,
     status: response.status,
     to,
-    response: await response.text(),
+    response: responseText,
   };
 }
 
-exports.handler = async (event) => {
+exports.handler = async function (event) {
   try {
     if (event.httpMethod !== "POST") {
       return {
@@ -78,19 +82,18 @@ exports.handler = async (event) => {
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL;
-
     const adminEmail =
       process.env.ADMIN_EMAIL || "info@thewollastongardens.com";
+
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+    const twilioFrom = normalizePhoneNumber(process.env.TWILIO_FROM_NUMBER);
 
     const adminPhone = normalizePhoneNumber(
       process.env.ADMIN_PHONE_NUMBER ||
         process.env.ADMIN_PHONE ||
         "+16179030736"
     );
-
-    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-    const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-    const twilioFrom = normalizePhoneNumber(process.env.TWILIO_FROM_NUMBER);
 
     const vendorPhone = normalizePhoneNumber(data.phone);
 
@@ -170,20 +173,20 @@ exports.handler = async (event) => {
       })),
     });
 
-    console.log("NOTIFICATION RESULTS:", JSON.stringify(results, null, 2));
+    console.log("APPROVAL NOTIFICATION RESULTS:", JSON.stringify(results, null, 2));
 
-return {
-  statusCode: 200,
-  body: JSON.stringify({ success: true, results }),
-};
-  catch (error) {
-  console.error("NOTIFICATION ERROR:", error);
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: true, results }),
+    };
+  } catch (error) {
+    console.error("APPROVAL NOTIFICATION ERROR:", error);
 
-  return {
-    statusCode: 500,
-    body: JSON.stringify({
-      error: error.message || "Notification failed",
-    }),
-  };
-}
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: error.message || "Approval notification failed",
+      }),
+    };
+  }
 };
