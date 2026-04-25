@@ -5,6 +5,8 @@ exports.handler = async () => {
     const store = getStore("wollaston-bookings");
     const data = await store.get("bookings", { type: "json" });
 
+    console.log("BOOKINGS LOADED:", data?.slots?.length || 0);
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -13,6 +15,8 @@ exports.handler = async () => {
       }),
     };
   } catch (error) {
+    console.error("BOOKINGS GET ERROR:", error);
+
     return {
       statusCode: 200,
       body: JSON.stringify({
