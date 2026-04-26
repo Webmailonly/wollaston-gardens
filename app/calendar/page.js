@@ -179,7 +179,7 @@ export default function CalendarPage() {
   const [calendarSearch, setCalendarSearch] = useState("");
   const [month, setMonth] = useState("2026-05");
   const [selectedDate, setSelectedDate] = useState("");
-
+const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     (async () => {
       const [loadedSlots, loadedSponsors] = await Promise.all([
@@ -190,13 +190,33 @@ export default function CalendarPage() {
       setSponsors(loadedSponsors);
     })();
   }, []);
+useEffect(() => {
+  const checkMobile = () => setIsMobile(window.innerWidth <= 768);
 
+  checkMobile();
+  window.addEventListener("resize", checkMobile);
+
+  return () => window.removeEventListener("resize", checkMobile);
+}, []);
   const approvedSlots = useMemo(() => {
     return slots.filter((slot) => slot.status === "approved");
   }, [slots]);
 
   const monthDates = useMemo(() => buildMonthGrid(month), [month]);
+const visibleMonthDates = useMemo(() => {
+  if (!isMobile) return monthDates;
 
+  return monthDates.filter((dateCell) => {
+    if (!dateCell) return false;
+
+    const [year, monthNum, dayNum] = dateCell.split("-").map(Number);
+    const dateObj = new Date(year, monthNum - 1, dayNum);
+    const dayOfWeek = dateObj.getDay();
+
+    // Mobile only: show Thursday, Friday, Saturday, Sunday
+    return dayOfWeek === 4 || dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
+  });
+}, [monthDates, isMobile]);
   const searchableApprovedSlots = useMemo(() => {
     const q = calendarSearch.toLowerCase().trim();
 
@@ -372,11 +392,13 @@ export default function CalendarPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+              gridTemplateColumns: isMobile
+  ? "repeat(4, minmax(0, 1fr))"
+  : "repeat(7, minmax(0, 1fr))",
               gap: 10,
             }}
           >
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            {(isMobile ? ["Thu", "Fri", "Sat", "Sun"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]).map((day) => (
               <div
                 key={day}
                 style={{
@@ -391,7 +413,7 @@ export default function CalendarPage() {
               </div>
             ))}
 
-            {monthDates.map((dateCell, index) => {
+            {visibleMonthDates.map((dateCell, index) => {
               if (!dateCell) {
                 return (
                   <div
