@@ -477,13 +477,9 @@ export default function Page() {
     const freshSlots = createSlotsFromSchedule();
 
     if (saved?.slots && Array.isArray(saved.slots) && saved.slots.length > 0) {
-      const bookedSlots = saved.slots.filter((slot) =>
-        ["pending", "approved"].includes(slot.status)
-      );
-
       const mergedSlots = [...freshSlots];
 
-      for (const booked of bookedSlots) {
+      for (const booked of saved.slots) {
         const matchIndex = mergedSlots.findIndex(
           (slot) =>
             slot.status === "open" &&
