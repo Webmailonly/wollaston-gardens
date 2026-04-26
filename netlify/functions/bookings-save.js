@@ -26,20 +26,24 @@ exports.handler = async (event) => {
       };
     }
 
+    const activeBookings = body.slots.filter((slot) =>
+      ["pending", "approved"].includes(slot.status)
+    );
+
     const store = getBookingsStore();
 
     await store.setJSON("bookings", {
-      slots: body.slots,
+      slots: activeBookings,
       updatedAt: new Date().toISOString(),
     });
 
-    console.log("BOOKINGS SAVED:", body.slots.length);
+    console.log("ACTIVE BOOKINGS SAVED:", activeBookings.length);
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         success: true,
-        count: body.slots.length,
+        count: activeBookings.length,
       }),
     };
   } catch (error) {
