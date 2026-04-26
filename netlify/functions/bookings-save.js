@@ -32,6 +32,25 @@ exports.handler = async (event) => {
 
     const store = getBookingsStore();
 
+    const existing = await store.get("bookings", { type: "json" });
+    const existingBookings = existing?.slots || [];
+
+    if (existingBookings.length > 0 && activeBookings.length === 0) {
+      console.error(
+        "REFUSED EMPTY OVERWRITE. Existing active bookings:",
+        existingBookings.length
+      );
+
+      return {
+        statusCode: 409,
+        body: JSON.stringify({
+          error: "Refused to overwrite existing bookings with empty state.",
+          existingBookings: existingBookings.length,
+          incomingBookings: activeBookings.length,
+        }),
+      };
+    }
+
     await store.setJSON("bookings", {
       slots: activeBookings,
       updatedAt: new Date().toISOString(),
