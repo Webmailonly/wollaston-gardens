@@ -13,22 +13,12 @@ exports.handler = async () => {
     const store = getBookingsStore();
     const data = await store.get("bookings", { type: "json" });
 
-    const slots = data?.slots || [];
-
-    console.log("BOOKINGS LOADED:", slots.length);
-    console.log(
-      "APPROVED BOOKINGS LOADED:",
-      slots.filter((slot) => slot.status === "approved").length
-    );
-    console.log(
-      "PENDING BOOKINGS LOADED:",
-      slots.filter((slot) => slot.status === "pending").length
-    );
+    console.log("BOOKINGS LOADED:", data?.slots?.length || 0);
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        slots,
+        slots: data?.slots || [],
         updatedAt: data?.updatedAt || null,
       }),
     };
@@ -36,7 +26,7 @@ exports.handler = async () => {
     console.error("BOOKINGS GET ERROR:", error);
 
     return {
-      statusCode: 500,
+      statusCode: 200,
       body: JSON.stringify({
         slots: [],
         error: error.message || "Load failed",
