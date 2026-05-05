@@ -46,7 +46,6 @@ const TIERS = [
       "Logo on calendar page",
       "Featured placement on fence wrap",
       "Mention on all marketing and social media thank you",
-      "Beer coasters for three weekends",
       "Included in launch digital and print advertising",
     ],
   },
@@ -59,7 +58,6 @@ const TIERS = [
       "All month long",
       "A-frame at entrance",
       "Calendar placement plus social media thank you",
-      "Beer coasters for one weekend",
     ],
   },
   {
